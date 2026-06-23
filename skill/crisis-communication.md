@@ -1,230 +1,279 @@
 # Crisis Communication
 
-> Load this skill when you need to communicate publicly about a security incident.
+> Load when you need to communicate publicly about a security incident.
 > Timing, tone, and honesty are your only tools. Use them precisely.
+> Load `agents/comms-director.md` for drafting assistance.
 
 ---
 
 ## The Communication Timeline
 
 ```
-T+0    Exploit confirmed
-T+15   Internal war room active, DO NOT post publicly yet
-T+30   Initial notice posted (template below) — brief, factual, no speculation
-T+60   First update posted — containment status
-T+4h   Second update — damage assessment, what you know
-T+24h  Full disclosure — attack vector explained (if safe to disclose)
+T+0    Exploit confirmed or strong suspicion
+T+15   War room active — DO NOT post publicly yet
+T+30   Initial notice posted — short, factual, user action only
+T+60   First containment update
+T+4h   Damage scope update (only what is confirmed)
+T+24h  Technical disclosure if root cause confirmed
+T+72h  If root cause still unclear — post that explicitly
 T+7d   Full post-mortem published
 ```
 
-Do not compress this timeline to look responsive. Incorrect information in a crisis is worse than silence.
+Do not compress this timeline to look responsive. Incorrect early information destroys trust faster than a delayed accurate statement.
 
 ---
 
-## Initial Notice (T+30 Template)
+## Stage 1: Initial Notice (T+30 — 2 minutes to draft)
 
-Post this on X/Twitter and your official Discord within 30 minutes of confirming the exploit.
-Do not wait until you understand everything. Do not speculate.
+### What you need before drafting:
+1. Is this confirmed or suspected? (confirmed = you saw funds move)
+2. What user action is needed RIGHT NOW?
+3. What have you done so far (paused, frozen, nothing)?
 
+### X/Twitter Template (≤280 characters)
 ```
-🚨 Security Notice — [PROTOCOL NAME]
+🚨 Security Notice — [PROTOCOL] [TIME UTC]
 
-We have identified unusual activity on our protocol and are currently 
-investigating.
+We've detected unusual activity on our protocol and are investigating.
 
-As a precaution, we have [paused the protocol / suspended deposits / 
-taken emergency measures].
+[ACTION TAKEN if any: "Deposits suspended" / "Protocol paused"]
 
-User funds: [We are actively assessing the situation.]
+Please do not interact with [PROTOCOL] until further notice.
 
-We will post updates as we have confirmed information.
-
-Please do not interact with the protocol until further notice.
-
-[TIMESTAMP UTC]
+Updates every hour: [discord link]
 ```
 
-*What to include:*
-- What you know (unusual activity)
-- What action you took (if any)
-- Clear instruction to users (do not interact)
-- Commit to updates
-
-*What NOT to include:*
-- Speculation about attack vector
-- Dollar amounts (until confirmed)
-- Assurances you cannot keep ("funds are safe")
-- Accusations or naming of individuals
-
----
-
-## 60-Minute Update (T+60 Template)
-
+### Discord Template
 ```
-Update 2 — [PROTOCOL NAME] Security Incident — [TIME UTC]
+@everyone
 
-Containment status: [The protocol has been paused / We are working to contain 
-the exploit / Deposits and withdrawals are suspended]
+🚨 **Security Notice | [DATE TIME UTC]**
 
-What we know:
-- [Factual statement 1]
-- [Factual statement 2]
-- [What is not yet confirmed]
+We have identified unusual activity on our protocol and are actively investigating.
 
-We have engaged [security firm if applicable] to assist with the investigation.
+**What we have done:** [Protocol paused / Deposits suspended / Nothing yet — investigating]
 
-Our team is working around the clock. Next update in [X hours].
+**What you should do right now:**
+→ Do not deposit or interact with the protocol
+→ [OPTIONAL: "You can withdraw via [EMERGENCY URL]" — only if safe]
+→ Follow this channel for updates
 
-[TIMESTAMP UTC]
+**What we do NOT know yet:** The full scope of the impact. We will not speculate.
+
+Next update by **[SPECIFIC TIME UTC]**.
+
+Questions: [#incident-support channel]
 ```
 
 ---
 
-## Damage Assessment Update (T+4h Template)
+## Stage 2: Containment Update (T+60 minutes)
 
 ```
-Update 3 — [PROTOCOL NAME] Security Incident — [TIME UTC]
+**Update 2 — [PROTOCOL] Security Incident | [TIME UTC]**
 
-We now have a clearer picture of the incident.
+**Containment status:**
+[The exploit has been stopped — program is paused]
+OR [We are still actively containing the situation]
+OR [The attack appears complete — no further funds at risk]
 
-Amount affected: [Be precise — e.g., "approximately $X in [TOKEN]"]
-User funds affected: [Describe which funds, which pools, which users]
+**What we know:**
+• [Specific confirmed fact]
+• [Specific confirmed fact]
+• [What we are still investigating — be explicit]
 
-Protocol status: [Paused / Under review / Safe to use for X but not Y]
+[IF SCOPE CONFIRMED:]
+Approximately [AMOUNT] in [TOKEN(S)] was affected across [NUMBER] accounts.
 
-Investigation: Our team and [SECURITY FIRM] have identified the [general 
-category of vulnerability, e.g., "a logic error in our [COMPONENT]"]. 
-We will share full technical details in our post-mortem.
+[IF SCOPE NOT CONFIRMED:]
+We are still assessing the full scope. We will not speculate on amounts.
 
-What we are doing:
-- [Action 1 — e.g., "Working with exchanges to flag attacker wallets"]
-- [Action 2 — e.g., "Assessing recovery options for affected users"]
-- [Action 3 — e.g., "Preparing a full disclosure"]
+**Security assistance:** [We have engaged [FIRM] to assist] OR [Our team is handling investigation]
 
-We understand this is deeply concerning. We are committed to full transparency.
-
-[TIMESTAMP UTC]
+Next update by **[SPECIFIC TIME + 2h UTC]**.
 ```
 
 ---
 
-## Sensitive Communication Rules
+## Stage 3: Technical Disclosure (T+24h)
 
-### What you cannot legally say
+Only post this when you can fill every field with confirmed information.
 
-*Do not promise a specific recovery percentage* until you have the funds and a legal framework to deliver it. Promising 100% recovery when you cannot deliver it creates personal liability for founders.
+```
+**Full Technical Disclosure — [PROTOCOL] Incident | [DATE UTC]**
 
-*Do not name the attacker publicly* unless you have confirmed identity. Calling the wrong person an attacker is defamatory.
+**SUMMARY**
+On [DATE] at [TIME UTC], our protocol was exploited. [AMOUNT] was extracted 
+from [AFFECTED COMPONENT] via [1 SENTENCE NON-TECHNICAL DESCRIPTION].
 
-*Do not discuss active law enforcement cooperation publicly* until law enforcement instructs you to. It can compromise an investigation.
+**WHAT HAPPENED — Non-Technical**
+[2-3 sentences readable by non-engineers. What users experienced.]
 
-*Do not delete posts.* Every deletion is captured. Deletion signals dishonesty and will be used against you.
+**WHAT HAPPENED — Technical**
+The exploit targeted [INSTRUCTION NAME]. [SPECIFIC TECHNICAL DESCRIPTION — which 
+account validation was missing or bypassable, what the attacker did with it].
 
-### What builds trust
+Vulnerable code: [GITHUB LINK TO THE FIXED COMMIT if safe to share]
 
-Posting updates even when you have nothing new: "We have no new information but are still actively working."
+**TIMELINE (All UTC)**
+[TIME]: First exploit transaction confirmed [SIGNATURE short]
+[TIME]: Team notified
+[TIME]: Program paused
+[TIME]: Attack stopped
+[TIME]: Root cause identified
+[TIME]: Fix deployed
 
-Acknowledging failure directly: "This happened because of a bug in our code. We take full responsibility."
+**IMPACT**
+- Funds affected: [AMOUNT TOKEN] ($[USD at time])
+- User accounts: [NUMBER]
+- Unaffected: [What was NOT drained — if relevant]
 
-Specific timelines: "We will post our full post-mortem by [DATE]. If we are delayed, we will say why."
+**WHAT WE ARE DOING**
+• [Specific action 1]
+• [Specific action 2]
+
+**COMPENSATION**
+[See compensation section below — only include if ready to commit]
+
+Full post-mortem: [date they can expect it]
+```
 
 ---
 
-## Communicating with Affected Users
+## Stage 4: Security Researcher Disclosures
 
-For protocols with identifiable affected wallets, direct communication is required.
+### Pre-exploit Report (Responsible Disclosure)
+
+If a researcher contacts you BEFORE an exploit:
 
 ```typescript
-// If you can identify affected wallets via on-chain data
-// Use Helius to build the affected user list
-const response = await fetch(
-  `https://api.helius.xyz/v0/addresses/${PROGRAM_ID}/transactions?api-key=${HELIUS_KEY}&limit=1000`
-);
+// Your security@protocol.com auto-response (configure this NOW, not during incident)
+const RESPONSIBLE_DISCLOSURE_AUTORESPONSE = `
+Thank you for your security report.
 
-// Then communicate via:
-// 1. Your frontend — banner for affected wallets when they connect
-// 2. Email (if you collected emails)
-// 3. On-chain memo to affected wallets (serious, but done in major incidents)
+We are treating this seriously and will review within 24 hours.
+
+Please send full technical details to security@[protocol].com with:
+- Affected program/instruction
+- Steps to reproduce
+- Estimated impact
+
+Please do not disclose publicly while we investigate. We have a responsible disclosure 
+program and will respond appropriately to validated, previously unreported vulnerabilities.
+
+You will hear from our team directly at the email you provide.
+`;
+```
+
+Bounty response tiers (establish these BEFORE an incident, post them publicly):
+```
+Critical (funds at risk, exploitable on mainnet):  $25,000 – $250,000
+High (significant logic flaw, requires conditions): $5,000 – $25,000  
+Medium (non-fund-impacting security issue):         $1,000 – $5,000
+Low (best practices issue):                         $500 – $1,000
+
+Submit: security@[protocol].com or [Immunefi / Hacken program link]
+```
+
+### Post-exploit Whitehat Contact
+
+If a whitehat drained funds to "protect" them (this is legally complex — coordinate with legal counsel BEFORE responding publicly):
+
+```
+On-chain memo to whitehat wallet:
+"We believe you may have protected funds from [PROTOCOL]. 
+Please contact security@[protocol].com. 
+We want to work with you to return these to affected users. 
+This is confidential communication."
+
+Public post (while negotiating, do NOT confirm amounts or details):
+"We are aware of certain transactions from [APPROXIMATE DATE] 
+that may have been protective in nature. We are in communication 
+with the relevant parties. More information when we can confirm details."
+```
+
+### Attacker Bounty Negotiation
+
+If the attacker contacts you offering partial return:
+
+**Before responding:**
+1. Get legal counsel on the call
+2. Confirm the attacker actually has the funds (on-chain verification)
+3. Set a realistic ceiling: returning 85% is better than recovering 0%
+
+**Holding statement while negotiating:**
+```
+"We are aware of communications from wallets involved in this incident.
+We are working with legal counsel and are unable to comment further at this time."
+```
+
+**Do NOT:**
+- Agree to "no prosecution" — that is not your unilateral decision
+- Post negotiation amounts publicly while in progress
+- Threaten on social media (undermines negotiation leverage)
+- Let the negotiation run more than 72 hours without a clear progress signal
+
+---
+
+## Anti-Patterns From Real Incidents
+
+| Incident | Mistake | Cost |
+|----------|---------|------|
+| Wormhole (2022) | 3 hours of silence | Community assumed total loss, panic withdrew from related protocols |
+| Anonymous protocol | Posted "SAFU" while drain was ongoing | Lost all remaining community trust permanently |
+| Mango Markets | Public infighting over attacker negotiation | Decision-making visible to attacker, weakened position |
+| Multiple protocols | Deleted initial incorrect post | Screenshots everywhere — worse than correction |
+| Infrastructure protocol | Named individual attacker without confirmation | Legal liability, turned out to be wrong wallet attribution |
+| DeFi protocol 2025 | First post was 14 hours after incident | Community found out via blockchain explorers first — trust never recovered |
+
+---
+
+## Channel Priority Order
+
+Post in this order — do not skip channels:
+
+```
+1. X/Twitter (most discoverable, sets the public record)
+2. Discord #announcements (where your users actually are)
+3. Telegram (if you have an active Telegram community)
+4. Website status page (https://status.yourprotocol.com — set this up now)
+5. Email list (if you have one — slower but important for less active users)
+
+Channels you should NOT post during active incident:
+❌ Founders' personal Twitter accounts (creates inconsistency)
+❌ Discord general/trading channels (noise, hard to pin)
+❌ Reddit (too slow for incident communication)
 ```
 
 ---
 
-## Discord Moderation During a Crisis
+## AMA Preparation (Post-mortem community call)
 
-Your Discord will be flooded with fear, speculation, and sometimes attackers spreading disinformation.
-
-*Immediate actions:*
-- Slow mode: 60 seconds minimum in all channels
-- Disable external invites temporarily
-- Pin your official statement at the top of #announcements
-- Assign 2+ mods to monitor 24/7
-- Do not delete negative messages — it inflames the situation
-
-*What your mods should say:*
-"The team is aware and actively working. Please refer to the pinned announcement for official updates. We will not respond to DMs about compensation at this time."
-
-*What your mods should NOT say:*
-- Anything about amounts or causes before official announcement
-- Promises on behalf of the team
-- Speculation of any kind
-
----
-
-## Media & External Inquiries
-
-If journalists contact you:
-
-"We have issued a public statement. We are not providing additional comment while the investigation is ongoing. We will publish a full post-mortem by [DATE]."
-
-Designate ONE person as the media contact. All inquiries route to that person only.
-
----
-
-## The White Hat Contact Post
-
-If you believe the attacker may be a white hat, post this publicly after your initial notice:
+Run this 3-7 days after the incident, once you have the full post-mortem published.
 
 ```
-🤝 To the individual(s) who exploited [PROTOCOL]:
+PREPARATION (24h before AMA):
+  [ ] Compile list of 20 most common community questions from Discord/X
+  [ ] Prepare written answers to all of them — read them live, don't ad-lib
+  [ ] Have technical lead and one other team member present
+  [ ] Pre-answer the 5 hardest questions in writing (compensation, timeline, what went wrong)
+  [ ] Designate a moderator — they filter questions, you answer
+  
+DURING AMA:
+  [ ] Start by reading the summary of the post-mortem (2-3 minutes)
+  [ ] Take questions in this order: user impact → technical cause → compensation → future
+  [ ] It is OK to say "I don't know" — it is not OK to speculate
+  [ ] Record it — publish the recording
 
-If you acted as a security researcher or are willing to negotiate, 
-please contact us at: security@[DOMAIN].com
-
-We offer a bounty of [10% of funds] for the return of user funds. 
-We are committed to a fair resolution.
-
-[72-hour window]
+QUESTIONS YOU WILL BE ASKED (prepare these specifically):
+  1. "Why did this happen? Was it carelessness?"
+     → Specific technical answer. No hedging.
+  2. "Will I be compensated? When?"
+     → Only answer if you have confirmed the compensation plan.
+  3. "Why should I trust you again?"
+     → Specific changes made. External audit results. New controls.
+  4. "Who is responsible?"
+     → Own responsibility as a team. Do not name individuals.
+  5. "Are my funds safe now?"
+     → Answer with evidence (audit report, verified build, new architecture) not just "yes."
 ```
-
----
-
-## Post-Resolution Communication
-
-Once the incident is resolved:
-
-```
-✅ [PROTOCOL NAME] — Incident Resolved — [DATE UTC]
-
-We are pleased to confirm that [outcome — e.g., "the protocol has been 
-secured and will resume operations on [DATE]"].
-
-Summary:
-- Amount lost: [exact amount]
-- Recovery: [exact amount recovered, if any]
-- User compensation plan: [details]
-- Timeline to relaunch: [date]
-
-Our full post-mortem will be published on [DATE]. It will include the 
-complete technical breakdown, our response timeline, and the changes we 
-are making.
-
-Thank you for your patience. We are sorry this happened.
-```
-
----
-
-## Transition Points
-
-- Incident is contained, need to write the full technical breakdown → `skill/post-mortem-analysis.md`
-- Need to rebuild and relaunch → `skill/hardened-redeployment.md`
-- Legal obligations and reporting requirements → `skill/legal-regulatory-response.md`

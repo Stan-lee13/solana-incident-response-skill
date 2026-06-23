@@ -1,260 +1,406 @@
-# Anomaly Detection & Threat Classification
+# Anomaly Detection & Early Warning
 
-> Load this skill when you see suspicious activity but are not yet sure
-> if you are under active attack. Early detection saves millions.
+> Load when you see suspicious activity but are not yet sure if you are under attack.
+> Early detection is the difference between a $50K incident and a $50M incident.
+
+The goal is to detect the probe and the dry runs — not just the exploit itself.
 
 ---
 
-## Anomaly Detection Patterns
+## The Attacker's Signature Before the Attack
 
-### Transaction volume anomalies
+Attackers do not succeed on the first try. They:
+1. Deploy a test contract on devnet or localnet
+2. Probe your mainnet program with failing transactions (testing account validation)
+3. Run a small-scale exploit first (confirm it works, estimate gas)
+4. Scale up once confirmed
+
+**You should detect them at step 2 — not step 4.**
+
+---
+
+## Detection Pattern 1: Transaction Volume Spike
+
+A 10x spike in program interactions in a 5-minute window is the most common early signal.
 
 ```typescript
-import { Connection } from "@solana/web3.js";
+// src/monitors/volume-detector.ts
+import { Helius } from "helius-sdk";
 
-const connection = new Connection("https://mainnet.helius-rpc.com/?api-key=YOUR_KEY");
+const helius = new Helius(process.env.HELIUS_API_KEY!);
 
-async function detectVolumeAnomaly(programId: string, windowMinutes: number = 5) {
-  const response = await fetch(
-    `https://api.helius.xyz/v0/addresses/${programId}/transactions` +
-    `?api-key=${HELIUS_KEY}&limit=200`
-  );
-  const txs = await response.json();
+async function detectVolumeAnomaly(programId: string): Promise<{
+  anomaly: boolean;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "NORMAL";
+  currentRate: number;
+  baselineRate: number;
+  multiplier: number;
+}> {
+  const txs = await helius.rpc.getTransactionHistory({
+    address: programId,
+    options: { limit: 500 }
+  });
   
   const now = Date.now() / 1000;
-  const windowStart = now - (windowMinutes * 60);
   
-  // Count transactions in window
-  const recentTxs = txs.filter((tx: any) => tx.timestamp > windowStart);
+  // Current 5-minute window
+  const recent = txs.filter(tx => tx.timestamp > now - 300);
+  const currentRate = recent.length / 5; // per minute
   
-  // Get baseline (last 24h average per 5 min window)
+  // 24-hour baseline (average per 5-minute window)
   const dayAgo = now - 86400;
-  const dayTxs = txs.filter((tx: any) => tx.timestamp > dayAgo);
-  const baseline = dayTxs.length / (24 * 12); // avg per 5-min window
+  const dayTxs = txs.filter(tx => tx.timestamp > dayAgo);
+  const baselineRate = (dayTxs.length / (24 * 60)) ; // per minute
   
-  const volumeMultiplier = recentTxs.length / Math.max(baseline, 1);
+  const multiplier = currentRate / Math.max(baselineRate, 0.1);
   
-  if (volumeMultiplier > 10) {
-    return {
-      anomaly: true,
-      severity: "CRITICAL",
-      message: `${volumeMultiplier.toFixed(1)}x normal transaction volume`,
-      recentCount: recentTxs.length,
-      baseline: baseline.toFixed(1),
-    };
-  }
-  
-  return { anomaly: false, volumeMultiplier };
+  if (multiplier > 20) return { anomaly: true, severity: "CRITICAL", currentRate, baselineRate, multiplier };
+  if (multiplier > 10) return { anomaly: true, severity: "HIGH", currentRate, baselineRate, multiplier };
+  if (multiplier > 5)  return { anomaly: true, severity: "MEDIUM", currentRate, baselineRate, multiplier };
+  return { anomaly: false, severity: "NORMAL", currentRate, baselineRate, multiplier };
 }
 ```
 
-### Single wallet concentration
+---
+
+## Detection Pattern 2: Failed Transactions from Unknown Wallets
+
+The most reliable probe signal: a wallet that has never interacted with your program before, running failed transactions in rapid succession.
 
 ```typescript
-async function detectWalletConcentration(programId: string) {
-  const response = await fetch(
-    `https://api.helius.xyz/v0/addresses/${programId}/transactions` +
-    `?api-key=${HELIUS_KEY}&limit=100&type=TOKEN_TRANSFER`
-  );
-  const txs = await response.json();
-  
-  const walletCounts: Record<string, number> = {};
-  
-  txs.forEach((tx: any) => {
-    tx.feePayer && (walletCounts[tx.feePayer] = (walletCounts[tx.feePayer] || 0) + 1);
+async function detectProbeTransactions(programId: string): Promise<{
+  suspectedProbers: Array<{
+    wallet: string;
+    failedCount: number;
+    successCount: number;
+    firstSeen: string;
+    errorTypes: string[];
+  }>;
+}> {
+  const txs = await helius.rpc.getTransactionHistory({
+    address: programId,
+    options: { limit: 200 }
   });
   
-  const sorted = Object.entries(walletCounts)
-    .sort(([, a], [, b]) => b - a);
+  const now = Date.now() / 1000;
+  const last2h = txs.filter(tx => tx.timestamp > now - 7200);
   
-  // Alert if single wallet represents >20% of recent transactions
-  if (sorted.length > 0) {
-    const [topWallet, topCount] = sorted[0];
-    const concentration = topCount / txs.length;
-    
-    if (concentration > 0.2) {
+  // Group by fee payer
+  const byWallet: Record<string, typeof last2h> = {};
+  last2h.forEach(tx => {
+    if (!byWallet[tx.feePayer]) byWallet[tx.feePayer] = [];
+    byWallet[tx.feePayer].push(tx);
+  });
+  
+  const probers = Object.entries(byWallet)
+    .map(([wallet, walletTxs]) => {
+      const failed = walletTxs.filter(tx => tx.transactionError !== null);
+      const succeeded = walletTxs.filter(tx => tx.transactionError === null);
+      const errorTypes = [...new Set(failed.map(tx => 
+        JSON.stringify(tx.transactionError).substring(0, 100)
+      ))];
+      
       return {
-        anomaly: true,
-        severity: concentration > 0.5 ? "CRITICAL" : "HIGH",
-        wallet: topWallet,
-        percentage: (concentration * 100).toFixed(1) + "%",
-        message: `Single wallet responsible for ${(concentration * 100).toFixed(1)}% of recent transactions`,
+        wallet,
+        failedCount: failed.length,
+        successCount: succeeded.length,
+        firstSeen: new Date(walletTxs[0].timestamp * 1000).toISOString(),
+        errorTypes,
+        isSuspicious: failed.length >= 3 && failed.length > succeeded.length,
       };
+    })
+    .filter(w => w.isSuspicious);
+  
+  return { suspectedProbers: probers };
+}
+```
+
+---
+
+## Detection Pattern 3: Flash Loan in Same Transaction
+
+A flash loan + your program in the same atomic transaction is almost always adversarial. Legitimate use cases exist but are rare.
+
+```typescript
+// Known flash loan program IDs on Solana (update as ecosystem evolves)
+const FLASH_LOAN_PROGRAMS = new Set([
+  "So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo",  // Solend
+  "KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD",   // Kamino Lend
+  "MFv2hWf31Z9kbCa1snEPYctwafyhdvnV7FZnsebVacA",   // MarginFi
+]);
+
+async function detectFlashLoanAttacks(programId: string): Promise<Array<{
+  signature: string;
+  flashLoanProgram: string;
+  yourProgramInvoked: boolean;
+  tokenDrained: string | null;
+  timestamp: string;
+}>> {
+  const txs = await helius.rpc.getTransactionHistory({
+    address: programId,
+    options: { limit: 100 }
+  });
+  
+  const suspicious = [];
+  
+  for (const tx of txs) {
+    const involvedPrograms = new Set(
+      tx.instructions?.map(ix => ix.programId) ?? []
+    );
+    
+    const flashLoanProgram = [...FLASH_LOAN_PROGRAMS].find(p => involvedPrograms.has(p));
+    
+    if (flashLoanProgram && involvedPrograms.has(programId)) {
+      // Flash loan + your program = inspect closely
+      const largestOutflow = tx.tokenTransfers
+        ?.filter(t => t.fromUserAccount !== tx.feePayer)
+        ?.sort((a, b) => Number(BigInt(b.tokenAmount) - BigInt(a.tokenAmount)))?.[0];
+      
+      suspicious.push({
+        signature: tx.signature,
+        flashLoanProgram,
+        yourProgramInvoked: true,
+        tokenDrained: largestOutflow?.mint ?? null,
+        timestamp: new Date(tx.timestamp * 1000).toISOString(),
+      });
     }
   }
   
-  return { anomaly: false };
+  return suspicious;
 }
 ```
 
-### Oracle deviation detection
+---
+
+## Detection Pattern 4: Oracle Price Deviation
+
+If your protocol uses price oracles, a sudden oracle deviation before program interactions is a manipulation signal.
 
 ```typescript
-import { PythHttpClient, getPythClusterApiUrl, getPythProgramKeyForCluster } from "@pythnetwork/client";
-import { Connection, clusterApiUrl } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { PriceServiceConnection } from "@pythnetwork/price-service-client";
 
-async function detectOracleDeviation(feedId: string, thresholdPct: number = 3) {
-  const connection = new Connection("https://mainnet.helius-rpc.com/?api-key=YOUR_KEY");
-  const pythClient = new PythHttpClient(
-    connection,
-    getPythProgramKeyForCluster("mainnet-beta")
-  );
+const PRICE_DEVIATION_THRESHOLD = 0.05; // 5% deviation = alert
+
+async function detectOracleDeviation(
+  pythPriceId: string,
+  onChainOracleAddress: string
+): Promise<{ deviation: number; isAnomaly: boolean; onChainPrice: number; pythPrice: number }> {
+  const connection = new Connection(process.env.HELIUS_RPC_URL!);
+  const pythConnection = new PriceServiceConnection("https://hermes.pyth.network");
   
-  const data = await pythClient.getData();
+  // Get Pyth reference price
+  const [pythPriceUpdate] = await pythConnection.getLatestPriceFeeds([pythPriceId]);
+  const pythPrice = pythPriceUpdate?.getPriceUnchecked()?.price;
   
-  // Sample price over 5 slots
-  const prices: number[] = [];
-  for (let i = 0; i < 5; i++) {
-    const feed = data.productPrice.get(feedId);
-    if (feed?.price) prices.push(feed.price);
-    await new Promise(r => setTimeout(r, 400)); // ~1 slot
-  }
+  if (!pythPrice) throw new Error("Could not fetch Pyth price");
   
-  if (prices.length < 2) return { anomaly: false };
+  // Get on-chain oracle price (varies by oracle provider)
+  const oracleAccount = await connection.getAccountInfo(new PublicKey(onChainOracleAddress));
+  // Parse oracle price from account data (implementation specific to oracle provider)
+  // ...
   
-  const maxChange = Math.max(...prices.map((p, i) => {
-    if (i === 0) return 0;
-    return Math.abs((p - prices[i - 1]) / prices[i - 1]) * 100;
-  }));
+  const onChainPrice = 0; // TODO: parse from account data
+  const deviation = Math.abs(onChainPrice - pythPrice) / pythPrice;
   
-  if (maxChange > thresholdPct) {
-    return {
-      anomaly: true,
-      severity: maxChange > 10 ? "CRITICAL" : "HIGH",
-      maxChangePct: maxChange.toFixed(2),
-      message: `Oracle price moved ${maxChange.toFixed(2)}% in under 2 seconds`,
-    };
-  }
-  
-  return { anomaly: false };
+  return {
+    deviation,
+    isAnomaly: deviation > PRICE_DEVIATION_THRESHOLD,
+    onChainPrice,
+    pythPrice,
+  };
 }
+```
+
+---
+
+## Detection Pattern 5: Wallet Concentration & New Wallet Surge
+
+```typescript
+async function detectWalletAnomaly(programId: string): Promise<{
+  topWalletConcentration: number;
+  topWallet: string;
+  newWalletsIn2h: number;
+  isAnomaly: boolean;
+}> {
+  const txs = await helius.rpc.getTransactionHistory({
+    address: programId,
+    options: { limit: 200 }
+  });
+  
+  const now = Date.now() / 1000;
+  const recent = txs.filter(tx => tx.timestamp > now - 7200); // 2h window
+  const older = txs.filter(tx => tx.timestamp <= now - 7200);
+  
+  const knownWallets = new Set(older.map(tx => tx.feePayer));
+  const newWalletsIn2h = recent.filter(tx => !knownWallets.has(tx.feePayer)).length;
+  
+  // Concentration: what % of recent txs come from one wallet
+  const walletCounts: Record<string, number> = {};
+  recent.forEach(tx => walletCounts[tx.feePayer] = (walletCounts[tx.feePayer] ?? 0) + 1);
+  
+  const topEntry = Object.entries(walletCounts).sort(([,a],[,b]) => b-a)[0] ?? ["unknown", 0];
+  const topWalletConcentration = topEntry[1] / Math.max(recent.length, 1);
+  
+  return {
+    topWalletConcentration,
+    topWallet: topEntry[0],
+    newWalletsIn2h,
+    isAnomaly: topWalletConcentration > 0.30 || newWalletsIn2h > 20,
+  };
+}
+```
+
+---
+
+## Detection Pattern 6: Governance Attack Signals
+
+Governance exploits follow a specific pattern: rapid token accumulation → proposal → immediate execution.
+
+```typescript
+async function detectGovernanceAttack(
+  governanceProgramId: string,
+  tokenMint: string
+): Promise<{ alert: boolean; details: string }> {
+  // Signs of a governance attack:
+  // 1. Large token purchase in short window
+  // 2. New proposal created immediately after
+  // 3. Voting compressed into minimum time window
+  // 4. Proposal contains treasury drain or authority transfer
+  
+  const SUSPICIOUS_PATTERNS = [
+    "transfer authority",
+    "upgrade program",
+    "drain treasury",
+    "set admin",
+    "disable timelock",
+  ];
+  
+  // Check recent governance proposals for suspicious instructions
+  // Implementation depends on governance program (SPL Governance, Realms, etc.)
+  
+  return { alert: false, details: "Requires governance program address to check" };
+}
+```
+
+---
+
+## Detection Pattern 7: CPI Depth Anomaly
+
+A legitimate user transaction rarely exceeds 3-4 CPI levels. Exploit transactions often chain 8+ nested calls.
+
+```typescript
+function detectCPIDepthAnomaly(logMessages: string[]): {
+  maxDepth: number;
+  isAnomaly: boolean;
+  deepestCallChain: string[];
+} {
+  let maxDepth = 0;
+  let currentDepth = 0;
+  const callStack: string[] = [];
+  const deepestCallChain: string[] = [];
+  
+  for (const log of logMessages) {
+    if (log.includes("Program") && log.includes("invoke")) {
+      currentDepth++;
+      const programMatch = log.match(/Program (\w+) invoke/);
+      if (programMatch) callStack.push(programMatch[1]);
+      
+      if (currentDepth > maxDepth) {
+        maxDepth = currentDepth;
+        deepestCallChain.length = 0;
+        deepestCallChain.push(...callStack);
+      }
+    } else if (log.includes("Program") && log.includes("success")) {
+      currentDepth = Math.max(0, currentDepth - 1);
+      callStack.pop();
+    } else if (log.includes("Program") && log.includes("failed")) {
+      currentDepth = Math.max(0, currentDepth - 1);
+      callStack.pop();
+    }
+  }
+  
+  return {
+    maxDepth,
+    isAnomaly: maxDepth > 6,
+    deepestCallChain,
+  };
+}
+```
+
+---
+
+## Setting Up Continuous Monitoring
+
+Run all detectors in a loop with alerting:
+
+```typescript
+// src/monitors/watchdog.ts
+import { sendDiscordAlert } from "./discord";
+
+async function runWatchdog(programId: string) {
+  const POLL_INTERVAL_MS = 30_000; // 30 seconds
+  
+  console.log(`🔍 Watchdog started for ${programId}`);
+  
+  setInterval(async () => {
+    try {
+      const [volume, probes, flashLoans, wallets] = await Promise.all([
+        detectVolumeAnomaly(programId),
+        detectProbeTransactions(programId),
+        detectFlashLoanAttacks(programId),
+        detectWalletAnomaly(programId),
+      ]);
+      
+      const alerts: string[] = [];
+      
+      if (volume.anomaly) {
+        alerts.push(`📈 Volume spike: ${volume.multiplier.toFixed(1)}x normal (${volume.severity})`);
+      }
+      if (probes.suspectedProbers.length > 0) {
+        alerts.push(`🔍 ${probes.suspectedProbers.length} wallets probing with failed transactions`);
+        probes.suspectedProbers.forEach(p => 
+          alerts.push(`  → ${p.wallet}: ${p.failedCount} failures, ${p.successCount} successes`)
+        );
+      }
+      if (flashLoans.length > 0) {
+        alerts.push(`⚡ ${flashLoans.length} flash loan + program interactions detected`);
+      }
+      if (wallets.isAnomaly) {
+        alerts.push(`👛 Wallet anomaly: ${(wallets.topWalletConcentration * 100).toFixed(0)}% from one wallet, ${wallets.newWalletsIn2h} new wallets`);
+      }
+      
+      if (alerts.length > 0) {
+        const severity = volume.severity === "CRITICAL" || flashLoans.length > 0 ? "CRITICAL" : "HIGH";
+        await sendDiscordAlert({
+          severity,
+          programId,
+          alerts,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.error("Watchdog error:", err);
+    }
+  }, POLL_INTERVAL_MS);
+}
+
+runWatchdog(process.env.PROGRAM_ID!);
 ```
 
 ---
 
 ## Threat Classification Matrix
 
-```
-SEVERITY LEVELS:
+| Signal | Alone | Combined | Response |
+|--------|-------|----------|----------|
+| Volume 5x | MEDIUM | + new wallet | HIGH |
+| Volume 20x+ | HIGH | + flash loan | CRITICAL |
+| Failed tx probes | MEDIUM | + success after | HIGH → load active-exploit-response.md |
+| Flash loan + program | HIGH | + volume spike | CRITICAL |
+| Oracle deviation 5%+ | HIGH | + your program call | CRITICAL |
+| New wallet surge | LOW | + concentrated | MEDIUM |
+| CPI depth >6 | HIGH | + fund drain | CRITICAL |
+| Governance proposal | MEDIUM | + treasury target | HIGH |
 
-CRITICAL — Respond within 5 minutes
-  Signs: Active drain, >$100K moved, program being called by unknown wallets
-  Action: Load active-exploit-response.md, wake team immediately
-
-HIGH — Respond within 15 minutes  
-  Signs: Anomalous volume spike, single wallet concentration, oracle deviation
-  Action: Convene technical lead, begin monitoring escalation, prepare freeze
-
-MEDIUM — Respond within 1 hour
-  Signs: Unusual instruction patterns, elevated transaction frequency, new wallet exploring contract
-  Action: Technical review, check if behavior matches known attack patterns
-
-LOW — Respond within 24 hours
-  Signs: Minor anomalies, single failed exploit attempt (reverted tx), social media FUD
-  Action: Log and monitor, review after normal working hours
-```
-
----
-
-## Pre-Exploit Attack Recon Detection
-
-Attackers often probe before exploiting. Watch for:
-
-```typescript
-// Detect failed transactions to your program (revert = attacker testing)
-async function detectFailedTransactions(programId: string) {
-  const response = await fetch(
-    `https://api.helius.xyz/v0/addresses/${programId}/transactions` +
-    `?api-key=${HELIUS_KEY}&limit=100`
-  );
-  const txs = await response.json();
-  
-  const failedTxs = txs.filter((tx: any) => tx.transactionError !== null);
-  const failedByWallet: Record<string, number> = {};
-  
-  failedTxs.forEach((tx: any) => {
-    const wallet = tx.feePayer;
-    failedByWallet[wallet] = (failedByWallet[wallet] || 0) + 1;
-  });
-  
-  // Multiple failed txs from same wallet = attacker probing
-  Object.entries(failedByWallet)
-    .filter(([, count]) => count >= 3)
-    .forEach(([wallet, count]) => {
-      console.warn(`⚠️ Suspicious: ${wallet} had ${count} failed transactions`);
-    });
-}
-```
-
----
-
-## Setting Up Automated Monitoring
-
-```typescript
-// Helius webhook handler — deploy as an edge function
-export async function handleWebhook(req: Request) {
-  const events = await req.json();
-  
-  for (const event of events) {
-    // Check for large single transactions
-    const totalValueMoved = event.nativeTransfers?.reduce(
-      (sum: number, t: any) => sum + t.amount, 0
-    ) || 0;
-    
-    if (totalValueMoved > 1_000_000_000) { // >1000 SOL
-      await sendAlert({
-        level: "HIGH",
-        message: `Large movement: ${totalValueMoved / 1e9} SOL`,
-        signature: event.signature,
-      });
-    }
-    
-    // Check for program upgrades
-    if (event.type === "PROGRAM_UPGRADE") {
-      await sendAlert({
-        level: "CRITICAL",
-        message: `Program upgraded! Signature: ${event.signature}`,
-        requiresImmediateReview: true,
-      });
-    }
-    
-    // Check for authority changes
-    if (event.type === "SET_AUTHORITY") {
-      await sendAlert({
-        level: "CRITICAL",
-        message: `Authority changed on account ${event.accountData?.[0]?.account}`,
-        signature: event.signature,
-      });
-    }
-  }
-}
-
-async function sendAlert(alert: { level: string; message: string; [key: string]: any }) {
-  // PagerDuty
-  await fetch("https://events.pagerduty.com/v2/enqueue", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      routing_key: PAGERDUTY_KEY,
-      event_action: alert.level === "CRITICAL" ? "trigger" : "acknowledge",
-      payload: {
-        summary: alert.message,
-        severity: alert.level.toLowerCase(),
-        source: "solana-incident-skill",
-        custom_details: alert,
-      },
-    }),
-  });
-  
-  // Telegram
-  await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
-      text: `🚨 [${alert.level}] ${alert.message}`,
-      parse_mode: "Markdown",
-    }),
-  });
-}
-```
+**When severity reaches CRITICAL → load `skill/active-exploit-response.md` immediately.**
