@@ -22,7 +22,6 @@ Use when: You believe funds are being drained, an attack is in progress, or you 
 
 ### 🔍 SUSPICIOUS ACTIVITY / EARLY WARNING
 → Load `skill/anomaly-detection.md`
-→ Load `skill/threat-classification.md`
 
 Use when: You see unusual transaction patterns, unexpected account drains, oracle deviations, or governance proposals you didn't initiate.
 
@@ -77,6 +76,7 @@ Use when: You need to understand reporting obligations, law enforcement coordina
 - `/draft-incident-notice` — generate initial public communication within 15 minutes
 - `/post-mortem-template` — structured post-mortem report ready to publish
 - `/recovery-plan` — full fund recovery and redeployment roadmap
+- `/incident-severity` — classify P0/P1/P2/P3 from your observed signals
 
 ---
 
