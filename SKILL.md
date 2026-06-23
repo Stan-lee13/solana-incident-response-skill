@@ -80,6 +80,18 @@ Use when: You need to understand reporting obligations, law enforcement coordina
 
 ---
 
+---
+
+### 🔧 PROGRAM UPGRADE — PLANNED OPERATION (not an incident)
+→ Load `skill/program-upgrade-safety.md`
+→ Load `agents/upgrade-commander.md`
+
+Use when: You are planning a program upgrade, changing account layouts, 
+migrating existing user state, or coordinating a Squads multisig upgrade.
+This is NOT for emergency upgrades during active exploits.
+
+---
+
 ## Always-On Rules
 
 Rules in `rules/incident-safety.md` are active whenever this skill is loaded.
