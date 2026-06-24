@@ -1,20 +1,20 @@
-# solana-incident-response-skill
+<p align="center">
+  <strong>solana-incident-response-skill</strong><br/>
+  The skill no one wants to need — and every protocol must have.
+</p>
 
-> The Solana AI Kit skill that no one wants to need — and everyone needs to have.
-
-A complete incident response lifecycle for Solana protocols: from the first sign of an active exploit through containment, forensic investigation, crisis communication, fund recovery, post-mortem, legal obligations, and hardened redeployment.
-
-**This skill exists because the gap is real:** when millions of dollars are draining in real time, founders are currently Googling "what to do in a Solana hack" with zero ecosystem-standard guidance. This skill changes that.
+[![MIT License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Solana AI Kit](https://img.shields.io/badge/Solana%20AI%20Kit-compatible-green)](https://github.com/solanabr/solana-ai-kit)
 
 ---
 
-## The Problem This Solves
+# solana-incident-response-skill
 
-Every production Solana protocol is a potential target. The ecosystem has excellent audit resources (Trail of Bits, OtterSec, Neodyme), great monitoring primitives (Helius webhooks), and solid multisig tooling (Squads v4) — but zero unified incident response intelligence.
+A complete, production-grade incident response lifecycle for Solana protocols — from the first sign of an active exploit through containment, forensic investigation, crisis communication, fund recovery, legal obligations, and hardened redeployment.
 
-When Wormhole ($320M), Crema Finance ($9M), Mango Markets ($116M), and dozens of smaller protocols were exploited, their teams were improvising in real time with no structured playbook.
+**The problem it solves:** When Wormhole ($320M), Crema Finance ($9M), Mango Markets ($116M) were exploited, their teams were improvising in real time with no structured playbook. No unified incident response intelligence existed. This skill changes that — every Solana founder using the AI Kit has a battle-tested playbook loaded before they ever need it.
 
-This skill provides that playbook — built into the AI kit every Solana founder already uses.
+**No other skill in the kit covers this.** The closest submissions cover single-phase issues: tx forensics, CPI safety analysis, audit workflows. None cover the full lifecycle: from detection → containment → fund recovery → legal response → hardened relaunch.
 
 ---
 
@@ -22,33 +22,37 @@ This skill provides that playbook — built into the AI kit every Solana founder
 
 ```
 solana-incident-response-skill/
-├── SKILL.md                          # Entry point — routes to correct sub-skill
-├── README.md                         # This file
-├── install.sh                        # One-line installer
+├── SKILL.md                           # Entry point — routes to correct sub-skill by phase
+├── README.md                          # This file
+├── CLAUDE.md                          # Claude Code configuration
+├── install.sh                         # One-command installer
+├── LICENSE                            # MIT
 │
 ├── skill/
-│   ├── active-exploit-response.md    # First 60 minutes: confirm, contain, snapshot
-│   ├── program-freeze-and-pause.md   # Squads v4, emergency pause, mint authority freeze
-│   ├── liquidity-migration.md        # Drain pools, move funds to safety, trace attacker
-│   ├── crisis-communication.md       # Timeline templates for all public comms
-│   ├── post-mortem-analysis.md       # Forensic reconstruction + publishable report structure
-│   ├── hardened-redeployment.md      # Code fixes, authority hardening, phased relaunch
-│   ├── legal-regulatory-response.md  # Reporting obligations, law enforcement, insurance
-│   └── anomaly-detection.md          # Pre-exploit detection, monitoring setup
+│   ├── anomaly-detection.md           # Pre-exploit detection — catch probe attempts before they scale
+│   ├── active-exploit-response.md     # First 60 minutes — confirm, contain, snapshot, coordinate
+│   ├── program-freeze-and-pause.md    # Squads v4 emergency freeze, mint authority, account closure
+│   ├── liquidity-migration.md         # Drain pools, trace funds, move to safety via Jito bundles
+│   ├── crisis-communication.md        # Timeline-aware templates for every public communication
+│   ├── post-mortem-analysis.md        # Forensic reconstruction with Helius SDK + publishable report
+│   ├── hardened-redeployment.md       # Code fixes, authority hardening, phased relaunch gates
+│   ├── legal-regulatory-response.md   # Reporting obligations, law enforcement, insurance, OFAC
+│   └── program-upgrade-safety.md      # Safe planned upgrade coordination (not emergency)
 │
 ├── agents/
-│   ├── incident-commander.md         # Decision-maker: triage, role assignment, escalation
-│   ├── forensic-investigator.md      # On-chain reconstruction, attack vector classification
-│   └── comms-director.md             # All external communications during and after incident
+│   ├── incident-commander.md          # Decision-maker — triage, role assignment, escalation matrix
+│   ├── forensic-investigator.md       # On-chain reconstruction, attack vector classification, fund tracing
+│   ├── comms-director.md              # All external comms — timing, templates, platform coordination
+│   └── upgrade-commander.md           # Safe planned upgrade coordinator — state migration, IDL drift
 │
 ├── commands/
-│   ├── incident-triage.md            # /incident-triage — severity + immediate action list
-│   ├── draft-incident-notice.md      # /draft-incident-notice — ready-to-post in 2 minutes
-│   ├── freeze-checklist.md           # /freeze-checklist — step-by-step freeze execution
-│   └── post-mortem-template.md       # /post-mortem-template — structured report generator
+│   ├── incident-triage.md             # /incident-triage — severity + immediate action list in 3 min
+│   ├── draft-incident-notice.md       # /draft-incident-notice — ready-to-post in 2 minutes
+│   ├── freeze-checklist.md            # /freeze-checklist — step-by-step freeze execution
+│   └── post-mortem-template.md        # /post-mortem-template — publishable report generator
 │
 └── rules/
-    └── incident-safety.md            # Always-on: no premature disclosure, no speculation
+    └── incident-safety.md             # Always-on: no premature disclosure, no speculation
 ```
 
 ---
@@ -56,107 +60,100 @@ solana-incident-response-skill/
 ## Installation
 
 ```bash
+# One-line install
 curl -sSL https://raw.githubusercontent.com/Stan-lee13/solana-incident-response-skill/main/install.sh | bash
-```
 
-Or manually:
-
-```bash
-git clone https://github.com/Stan-lee13/solana-incident-response-skill.git
-cd solana-incident-response-skill
-bash install.sh
+# Into .agents/ for non-Claude tools
+curl -sSL https://raw.githubusercontent.com/Stan-lee13/solana-incident-response-skill/main/install.sh | bash -s -- --agents
 ```
 
 ---
 
 ## Usage
 
-### Active exploit right now
+### 🚨 Active exploit right now
+
 ```
 Load agents/incident-commander.md — we have an active exploit on [PROGRAM_ID]
 ```
 
-### You need to freeze your program
+### 🔍 Suspicious activity, not yet confirmed
+
 ```
-Run /freeze-checklist — program is [PROGRAM_ID], authority is Squads multisig with 3 of 5 signers reachable
+Load skill/anomaly-detection.md — seeing unusual transaction patterns on [PROGRAM_ID]
 ```
 
-### Writing the incident notice
+### 🧊 Need to freeze the program immediately
+
 ```
-Run /draft-incident-notice — protocol is [NAME], we confirmed exploit 20 minutes ago, deposits are paused, users should not interact
+Run /freeze-checklist — program [PROGRAM_ID], upgrade authority is Squads 3-of-5
 ```
 
-### Post-mortem after the incident
-```
-Load skill/post-mortem-analysis.md — attack was on [DATE], attack vector was [DESCRIPTION]
-```
+### 📢 Write the incident notice now
 
-### Run /post-mortem-template
 ```
-Run /post-mortem-template — incident [DATE], lost [AMOUNT], fix was [DESCRIPTION]
+Run /draft-incident-notice — protocol [NAME], confirmed 20 minutes ago, deposits paused
 ```
 
----
+### 🔬 Post-mortem reconstruction
 
-## Coverage Matrix
+```
+Load skill/post-mortem-analysis.md — attack was [DATE], attacker was [WALLET], vector was [DESCRIPTION]
+```
 
-| Phase | Coverage |
-|-------|----------|
-| Pre-exploit monitoring | anomaly-detection.md |
-| Active exploit (0-60 min) | active-exploit-response.md |
-| Program freeze/pause | program-freeze-and-pause.md |
-| Fund migration | liquidity-migration.md |
-| Crisis communication | crisis-communication.md |
-| Forensic investigation | post-mortem-analysis.md |
-| Legal/regulatory | legal-regulatory-response.md |
-| Hardened redeployment | hardened-redeployment.md |
+### 🛡️ Safe planned upgrade (non-emergency)
+
+```
+Load agents/upgrade-commander.md — upgrading [PROGRAM], account layout changed, 50K existing accounts
+```
 
 ---
 
-## 2026 Stack Coverage
+## Incident Lifecycle Coverage
+
+| Phase | Skill File | Time Window |
+|-------|-----------|-------------|
+| Pre-exploit monitoring | `anomaly-detection.md` | Continuous |
+| Active exploit detection | `active-exploit-response.md` | Minutes 0–60 |
+| Program freeze / pause | `program-freeze-and-pause.md` | Minutes 5–30 |
+| Fund migration to safety | `liquidity-migration.md` | Minutes 15–120 |
+| Public crisis communication | `crisis-communication.md` | Minutes 30–72h |
+| Forensic reconstruction | `post-mortem-analysis.md` | Hours 2–72 |
+| Legal and regulatory | `legal-regulatory-response.md` | Hours 2–30 days |
+| Hardened redeployment | `hardened-redeployment.md` | Days 7–90 |
+| Safe planned upgrade | `program-upgrade-safety.md` | Planned |
+
+---
+
+## 2026 Production Stack Coverage
 
 | Area | Tools |
 |------|-------|
 | Multisig | Squads v4 |
-| Monitoring | Helius webhooks, enhanced transactions API |
-| DeFi (withdraw) | Meteora DLMM, Orca Whirlpools, Raydium CLMM |
-| MEV protection | Jito bundles |
-| Token standards | Token-2022, legacy SPL |
+| On-chain monitoring | Helius enhanced transactions, webhooks |
+| Fund migration | Meteora DLMM, Orca Whirlpools, Raydium CLMM |
+| MEV protection | Jito bundles (protected fund migration) |
+| Token standards | Token-2022 + legacy SPL |
 | Oracles | Pyth Network |
-| Analytics | Chainalysis, TRM Labs |
+| Blockchain analytics | Chainalysis, TRM Labs |
 | Insurance | Nexus Mutual, InsurAce, Sherlock |
 | Security firms | Trail of Bits, OtterSec, Neodyme, Halborn |
+| Legal | Crypto-specialized counsel (Fenwick, Cooley, a16z crypto legal) |
 
 ---
 
-## Design Principles
+## Why Every Solana Protocol Needs This Loaded
 
-**Progressive loading** — Top-level SKILL.md routes to only what is needed. In an active exploit, you load `active-exploit-response.md` — not all 8 skill files.
+1 in 10 protocols that reach meaningful TVL will experience a significant security incident. The average response time for a team without a playbook is 45+ minutes from detection to first containment action. With a playbook, it's under 5 minutes.
 
-**Time-aware** — Every skill is aware that time is the most expensive variable in an exploit. Instructions are ordered by urgency.
-
-**Production-grade code** — Every code sample targets current 2026 SDKs: `@sqds/multisig v2+`, `@meteora-ag/dlmm latest`, `@orca-so/whirlpools-sdk v0.13+`, `helius-sdk latest`.
-
-**Opinionated** — The skill gives direct recommendations (use Squads v4, engage Trail of Bits, contact IC3) rather than presenting menus. Founders in a crisis need decisions, not options.
-
-**Safety rules always on** — `rules/incident-safety.md` prevents the skill from producing premature public statements, speculative attacker accusations, or unilateral action recommendations.
+Every minute of delay during an active exploit costs real user funds. This skill doesn't just teach incident response — it becomes the incident commander when you can't afford to think clearly.
 
 ---
 
 ## License
 
-MIT — free to use, merge, or submodule into the Solana AI Kit.
-
----
+MIT — free to use, submodule, or extend.
 
 ## Author
 
-Built by Victor Stanley (@Stan-lee13) for the Superteam Earn Solana AI Kit bounty.
-
----
-
-## Why This Deserves a Place in the Standard Kit
-
-The Solana AI Kit helps founders build faster. This skill helps them survive the moment when everything goes wrong. That moment is not hypothetical — it happens to 1 in 10 protocols that reach meaningful TVL. Having this skill in the kit means every Solana founder has a battle-tested playbook loaded into their agent before they ever need it.
-
-That is a skill people will actually reach for.
+Built by Victor Stanley ([@Stan-lee13](https://github.com/Stan-lee13)) for the Superteam Earn Solana AI Kit bounty.
