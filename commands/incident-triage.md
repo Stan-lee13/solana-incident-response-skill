@@ -1,185 +1,149 @@
 # /incident-triage
 
-Classifies severity and generates an immediate action list in under 3 minutes.
+Systematic triage protocol for Solana incidents. Produces a deterministic classification and activation plan in under 3 minutes.
 
-## How to Use
+## Usage
 
-Answer the 5 questions below. The agent produces:
-1. A severity rating (CRITICAL / HIGH / MEDIUM / LOW)
-2. The exact files to load right now
-3. A numbered action list with real commands — not generic advice
+```text
+Run /incident-triage
+```
+
+This command asks exactly 5 questions, then outputs severity, incident type, immediate actions, agents, and the exact files to load next.
 
 ---
 
-## The 5 Questions
+## The 5 Questions (Ask All At Once)
 
-```
-1. CONFIRMATION STATUS
-   [ ] Confirmed — I see funds moving to an unknown wallet on Solscan/Helius
-   [ ] Suspected — I see anomalous transactions but cannot confirm fund loss
-   [ ] Unclear — someone reported it but I haven't verified
+```text
+1) CONFIRMATION STATUS (pick one)
+   [ ] Confirmed — on-chain evidence shows loss or unauthorized state change
+   [ ] Suspected — anomalous transactions but loss not confirmed
+   [ ] Unclear — report received but not verified
 
-2. SCOPE
+2) SCOPE (pick one)
    [ ] Under $10K
-   [ ] $10K – $100K  
+   [ ] $10K – $100K
    [ ] $100K – $1M
    [ ] Over $1M
-   [ ] Unknown — still assessing
+   [ ] Unknown (still assessing)
 
-3. ATTACK STATUS
-   [ ] Ongoing — program is still accepting transactions, drain is continuing
-   [ ] Complete — attack appears finished
+3) ATTACK STATUS (pick one)
+   [ ] Ongoing — attacker activity appears active right now
+   [ ] Stopped — attack appears stopped (for now)
    [ ] Unknown
 
-4. CONTROLS AVAILABLE (check all that apply)
-   [ ] Anchor emergency pause instruction in program
-   [ ] Upgrade authority — single keypair (I have it)
-   [ ] Upgrade authority — Squads multisig (N of M signers)
-        If multisig: How many signers are reachable RIGHT NOW? ___
-   [ ] Freeze authority on token mint
-   [ ] Program was deployed with no upgrade authority (immutable)
-   [ ] None of the above
+4) CONTROL SURFACE (check all that apply)
+   [ ] Program has an emergency pause instruction
+   [ ] Upgrade authority is a single keypair (reachable now)
+   [ ] Upgrade authority is Squads v4 multisig
+       Threshold: ___ of ___   Signers reachable in 10 minutes: ___
+   [ ] Mint freeze authority exists (SPL/Token-2022)
+   [ ] Program is immutable (no upgrade authority)
+   [ ] None of the above / unsure
 
-5. TEAM STATUS
-   [ ] Core team (≥3 people) available now
-   [ ] 1-2 people available
-   [ ] Founder only
-   [ ] Team is asleep / unreachable
+5) SIGNAL (pick the closest match)
+   [ ] Fund drain from program vaults / user positions decreasing
+   [ ] Unauthorized mint / supply inflation
+   [ ] Oracle manipulation / economic attack (liquidations, insolvency path)
+   [ ] Governance or admin takeover (authority change, malicious proposal)
+   [ ] Frontend/infrastructure compromise (phishing UI, API key leak, bot misbehavior)
 ```
 
 ---
 
-## Severity Classification
+## Severity Classification (P0–P3)
 
-| Confirmed? | Ongoing? | Amount | Severity |
-|------------|----------|--------|----------|
-| Yes | Yes | Any | **CRITICAL** |
-| Yes | No | >$100K | **HIGH** |
-| Yes | No | <$100K | **HIGH** |
-| Suspected | Yes | Any | **HIGH** |
-| Suspected | No | Any | **MEDIUM** |
-| Unclear | Any | Any | **MEDIUM** |
+| Confirmed? | Ongoing? | Scope | Severity |
+|------------|----------|-------|----------|
+| Yes | Yes | Any | **P0 (Critical)** |
+| Yes | No | ≥ $100K | **P1 (High)** |
+| Yes | No | < $100K | **P1 (High)** |
+| Suspected | Yes | Any | **P1 (High)** |
+| Suspected | No | Any | **P2 (Medium)** |
+| Unclear | Any | Any | **P2 (Medium)** |
 
----
-
-## CRITICAL — Immediate Action List
-
-**Time budget: 5 minutes to execute steps 1-4**
-
-```
-[0:00] WAKE EVERYONE — Send this exact message to all team:
-  "SECURITY INCIDENT. Join [CHANNEL] NOW. Do not post publicly.
-   Call [NAME] if no response in 2 minutes: [PHONE]"
-
-[0:30] LOAD IMMEDIATELY:
-  → skill/active-exploit-response.md
-  → skill/program-freeze-and-pause.md
-  → agents/incident-commander.md
-
-[1:00] FORENSIC SNAPSHOT — Run before any state changes:
-  solana account [PROGRAM_ID] --output json > snapshot_$(date +%s).json
-  curl "https://api.helius.xyz/v0/addresses/[PROGRAM_ID]/transactions?api-key=[KEY]&limit=50" > txs_$(date +%s).json
-
-[2:00] START FREEZE — Load program-freeze-and-pause.md
-  If pause instruction exists: invoke it NOW
-  If Squads multisig: open squads.so and start emergency proposal NOW
-  If single keypair: anchor run emergency-pause -- --provider.cluster mainnet-beta
-
-[3:00] START LIQUIDITY MIGRATION in parallel:
-  → Load skill/liquidity-migration.md
-  → Begin emergency-drain.ts for direct token accounts
-
-[5:00] POST INITIAL NOTICE — Load crisis-communication.md Stage 1 template
-  DO NOT post until you have something confirmed to say
-  Minimum viable post: "Unusual activity detected. Please do not interact. Updates soon."
-
-LOAD FOR COMMS: agents/comms-director.md
-LOAD FOR FORENSICS: agents/forensic-investigator.md
-```
+P3 (Low) applies only when you can confidently confirm “false positive / no on-chain impact.”
 
 ---
 
-## HIGH — Immediate Action List
+## Incident Type Classification (Solana-Specific)
 
+Map from Signal (Q5) to incident type:
+- Fund drain → vault drain / account validation failure
+- Unauthorized mint → mint authority / supply integrity incident
+- Oracle manipulation → oracle manipulation / economic exploit
+- Governance takeover → governance/admin compromise
+- Frontend/infra compromise → off-chain compromise
+
+---
+
+## Agents To Activate (Deterministic)
+
+```text
+Always activate for P0/P1:
+  - agents/incident-commander.md
+  - agents/forensic-investigator.md
+  - agents/comms-director.md
+
+Activate in parallel when “Contained” or moving into recovery:
+  - agents/recovery-engineer.md
 ```
-[0:00] ASSEMBLE TEAM — Notify core team (not urgent wake, but within 10 minutes)
 
-[2:00] FORENSIC SNAPSHOT:
-  solana account [PROGRAM_ID] --output json > snapshot_$(date +%s).json
-  
-  And capture the suspicious transactions:
-  solana transaction [SUSPICIOUS_SIG] --output json > tx_evidence_$(date +%s).json
+File routing by incident type:
 
-[5:00] LOAD:
-  → skill/anomaly-detection.md (if not yet confirmed)
-  → skill/active-exploit-response.md (if confirmed)
-  → agents/forensic-investigator.md
+| Incident type | Load next (execution) |
+|---------------|------------------------|
+| Vault drain | `skill/active-exploit-response.md` + `skill/program-freeze-and-pause.md` |
+| Unauthorized mint | `skill/program-freeze-and-pause.md` + `commands/freeze-checklist.md` |
+| Oracle/economic | `skill/active-exploit-response.md` + `skill/anomaly-detection.md` |
+| Governance takeover | `skill/legal-regulatory-response.md` + `skill/program-upgrade-safety.md` |
+| Frontend/infra | `skill/crisis-communication.md` + disable/rotate infra immediately |
 
-[10:00] ASSESS CONTROLS:
-  solana program show [PROGRAM_ID] --url mainnet-beta
-  Note: Is it upgradeable? Who has upgrade authority?
+---
 
-[15:00] DECISION POINT:
-  - If you can confirm the attack vector: proceed to freeze
-  - If still unclear: increase monitoring, set 30-minute re-evaluation
-  
-[20:00] PREPARE COMMUNICATIONS — Do not post yet, but have draft ready
-  Load: agents/comms-director.md
+## Immediate Actions (By Severity)
+
+### P0 (Critical) — First 30 Minutes
+
+```text
+[ ] 1) Activate agents/incident-commander.md (single decision thread).
+[ ] 2) Activate agents/forensic-investigator.md (evidence before state changes).
+[ ] 3) Execute containment: skill/program-freeze-and-pause.md + commands/freeze-checklist.md.
+[ ] 4) Draft comms immediately: agents/comms-director.md (publish only if IC approves).
+[ ] 5) If funds are in protocol vaults and can be moved safely: skill/liquidity-migration.md (parallel).
+[ ] 6) If contained: activate agents/recovery-engineer.md (accounting/compensation/redeploy).
+```
+
+### P1 (High) / P2 (Medium) / P3 (Low)
+
+```text
+P1: preserve evidence + determine if ongoing; escalate to P0 if yes; prepare comms drafts.
+P2: validate anomalies via skill/anomaly-detection.md; re-triage if any confirmed loss appears.
+P3: log + monitor; improve alerts.
 ```
 
 ---
 
-## MEDIUM — Immediate Action List
+## Output Format (What This Command Returns)
 
+The agent must return exactly this structure:
+
+```text
+SEVERITY: [P0/P1/P2/P3]
+TYPE: [vault drain / unauthorized mint / oracle manipulation / governance takeover / frontend/infra compromise]
+
+IMMEDIATE ACTIONS:
+1) ...
+2) ...
+3) ...
+
+AGENTS TO ACTIVATE:
+- agents/incident-commander.md
+- agents/forensic-investigator.md
+- agents/comms-director.md
+- agents/recovery-engineer.md (if contained / recovery phase)
+
+FILES TO LOAD NOW:
+- ...
+- ...
 ```
-[0:00] ASSIGN ONE TECHNICAL TEAM MEMBER to investigate
-
-[5:00] LOAD:
-  → skill/anomaly-detection.md
-
-[10:00] MANUAL TRANSACTION REVIEW:
-  Open: https://solscan.io/account/[PROGRAM_ID]#txs
-  Look at last 50 transactions:
-  - Any unknown wallets with multiple failed attempts?
-  - Any unusual instruction combinations?
-  - Any accounts being drained?
-
-[20:00] HELIUS ALERT SETUP (if not already running):
-  Set up webhook for your program address
-  Alert threshold: 10x normal transaction volume
-  
-[30:00] BRIEF LEADERSHIP — Low key, factual
-  "We see [SPECIFIC THING]. Monitoring. Will re-evaluate in 1 hour."
-
-[60:00] ESCALATION CHECK — Has the situation changed? If yes → re-run triage
-```
-
----
-
-## Severity Self-Check
-
-After running triage, verify you classified correctly:
-
-```
-If you classified MEDIUM but any of these are true → upgrade to HIGH:
-  - The same wallet is now running successful transactions (not just probes)
-  - Any token balance in your program has decreased unexpectedly
-  - You received a report from a user that their funds are missing
-  - The pattern matches a known attack type from anomaly-detection.md
-
-If you classified HIGH but any of these are true → upgrade to CRITICAL:
-  - Funds are actively moving to an external wallet right now
-  - The attack is still ongoing and you have not paused
-  - Over $100K has been confirmed lost
-```
-
----
-
-## After Triage is Complete
-
-| Severity | Next files to load |
-|----------|--------------------|
-| CRITICAL | `active-exploit-response.md` → `program-freeze-and-pause.md` → `liquidity-migration.md` |
-| HIGH | `active-exploit-response.md` → `anomaly-detection.md` → `agents/forensic-investigator.md` |
-| MEDIUM | `anomaly-detection.md` → monitor for 60 minutes, re-triage |
-| LOW | Log the observation, link to `anomaly-detection.md` for monitoring setup |

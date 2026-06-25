@@ -1,104 +1,150 @@
 # /draft-incident-notice
 
-Generates a ready-to-post public incident notice within 2 minutes of confirmation.
+Generates a ready-to-post incident notice bundle (public + stakeholders) within 2 minutes of confirmation.
 
 ## Usage
 
-```
-Run /draft-incident-notice — protocol is [NAME], we confirmed [WHAT] at [TIME UTC], we have [ACTION TAKEN], users should [WHAT TO DO NOW].
-```
-
-## Required inputs before drafting
-
-The agent will ask for these if not provided:
-
-1. **Protocol name** — exact name as known publicly
-2. **What is confirmed** — be precise: "unusual drain from program X", "oracle manipulation detected", "unauthorized mint authority transfer". Do NOT say "hack" if not confirmed
-3. **What you have done** — "paused deposits", "frozen mint", "taken site offline", "nothing yet"
-4. **What users should do RIGHT NOW** — "do not deposit", "your funds in the protocol are safe", "withdraw via emergency UI at [URL]"
-5. **Contact channel** — where users can ask questions (Discord #announcements, Telegram)
-
-## The three versions the agent produces
-
-### Version 1: X/Twitter (≤280 characters)
-```
-⚠️ [PROTOCOL] Security Notice
-
-We have detected [1-line description]. 
-[Action taken].
-[What users should do NOW].
-
-Updates: [Discord/Telegram link]
+```text
+Run /draft-incident-notice
 ```
 
-### Version 2: Discord Announcement (full)
-```
-@everyone 
+The agent outputs: X thread (5 tweets), Discord announcement, investor email, exchange notice.
 
-🚨 **Security Notice — [DATE TIME UTC]**
+---
 
-**What we know:**
-[2-3 sentences of confirmed facts only. No speculation.]
+## Required Inputs (Ask All At Once)
 
-**What we have done:**
-[Bullet list of containment actions taken]
+```text
+1) What happened (confirmed facts only)?
 
-**What you should do:**
-[Specific, actionable instructions for users]
+2) What is affected?
+   - product surface + (optional) program/mint IDs
 
-**What happens next:**
-[Timeline for next update — be specific: "We will post an update in 2 hours"]
+3) What has been done so far?
+   - paused protocol / disabled deposits / maintenance mode / mitigation ongoing
 
-**Your funds:**
-[Clear statement on fund safety — only if you know for certain]
+4) What should users do right now?
+   - do not interact / withdraw via official link / no action required
 
-For questions: [#support-channel]
-Post updates: [#announcements]
+5) Logistics
+   - canonical updates link + next update time (UTC) + security email
 ```
 
-### Version 3: Telegram (formatted)
+---
+
+## Output Bundle (Agent Must Produce All 4)
+
+### 1) X/Twitter Thread (5 Tweets)
+
+```text
+TWEET 1/5
+[PROTOCOL] Security Notice | [UTC time]
+We are investigating suspicious activity affecting [surface].
+User guidance: [do not interact / specific action].
+Updates will be posted here and in [official channel link].
+TWEET 2/5
+Containment status: [paused / deposits disabled / mitigation ongoing].
+We will provide another update by [UTC time].
+TWEET 3/5
+What we know (confirmed):
+- [fact 1]
+- [fact 2]
+What is still being assessed:
+- [unknown 1]
+TWEET 4/5
+Security reminder:
+Do not click “recovery/claim/refund” links shared by anyone.
+We will only share official links via [canonical channel].
+TWEET 5/5
+If you believe you are affected, do not share private keys or seed phrases.
+Support: [support channel]  Security: [security email]
+Next update by [UTC time].
 ```
-⚠️ *[PROTOCOL] — Security Notice*
-[Date Time UTC]
 
-*Situation:* [1-2 sentences]
-*Action taken:* [What you did]
-*User action needed:* [What they should do]
+### 2) Discord Announcement (Canonical)
 
-Next update: [Specific time]
-Questions: [Link]
+```text
+@everyone
+🚨 **Security Notice — [PROTOCOL] | [UTC time]**
+**Summary (confirmed):**
+[2–3 sentences. Confirmed facts only.]
+**Immediate user guidance:**
+- [Action 1]
+- [Action 2]
+**Containment status:**
+- [paused / deposits disabled / mitigation ongoing]
+**What we are doing now:**
+- [forensics + mitigation + partner coordination in plain language]
+**What we are still assessing:**
+- [explicit unknowns]
+**Next update:**
+[UTC time] (we will post even if investigation is ongoing)
+**Security warning:**
+Do not trust any “refund” or “claim” links. We will only post official links in this channel.
+```
+
+### 3) Email to Investors / Board (Private)
+
+```text
+Subject: [PROTOCOL] — Security incident update ([UTC date/time])
+We have detected suspicious on-chain activity affecting [surface] of [PROTOCOL].
+Current severity (internal): [P0/P1/P2].
+Confirmed facts:
+- [fact 1]
+- [fact 2]
+Containment actions taken:
+- [paused/disabled/etc]
+Current impact assessment:
+- Loss estimate: [unknown / bounded range / confirmed amount]
+- Users affected: [unknown/estimate]
+Next steps:
+- [forensics timeline, exchange outreach, legal engagement if applicable]
+Next investor update by: [UTC time].
+```
+
+### 4) Exchange Partner Notice (Listing / Compliance)
+
+```text
+Subject: Urgent — [PROTOCOL] security incident (Solana) — coordination request
+We are responding to a security incident affecting [PROTOCOL] on Solana.
+Requested action (choose):
+- Please monitor and consider freezing deposits/withdrawals for the addresses below.
+- Please consider a temporary trading halt for [TOKEN/TICKER] while user guidance is active.
+On-chain identifiers:
+- Program ID(s): [PROGRAM_IDs]
+- Mint ID(s): [MINT_IDs]
+- Suspected attacker address(es): [ADDRs] (confidence labeled)
+Evidence:
+- Signatures: [sig 1], [sig 2], [sig 3]
+- Incident window: [UTC start]–[UTC end], slot range [if known]
+Point of contact:
+- Email: security@[domain]
+- Real-time contact: [Signal/Telegram]
+We can provide a fuller evidence pack on request.
 ```
 
 ## Critical rules the agent enforces
 
-```
-NEVER say:
-  - "We were hacked" (if not confirmed — use "we detected unusual activity")
-  - "All funds are SAFU" (unless you have verified on-chain that funds are protected)
-  - "We will make everyone whole" (do not commit before you know the scope)
-  - Specific dollar amounts you haven't verified
-  - Attacker wallet addresses (tips them off before law enforcement)
-  - Root cause (you don't know yet — post-mortem is later)
-
-ALWAYS include:
-  - Exact UTC timestamp of the notice
-  - What users MUST do right now (even if it's "nothing, just wait")
-  - When you will next update (be specific — 2 hours, not "soon")
-  - Where to get updates (single channel — don't split attention)
+```text
+NEVER: unverified loss totals, “funds are safe”, attribution, reproduction details, compensation promises, attacker addresses.
+ALWAYS: UTC timestamp, confirmed facts only, explicit user action, next update time, one canonical updates link, anti-phishing warning.
 ```
 
-## Timing guidance
+---
+
+## What NOT To Include (Even If Asked)
+
+```text
+- Reproduction steps, attribution claims, unverified numbers, compensation promises, or any “claim/refund” links that are not official and verified.
+```
+
+---
+
+## Timing Guidance
 
 ```
-0-15 min:   Post ONLY if you have confirmed something and users need to act
-            If no user action needed: wait for more facts
-            
-15-30 min:  If users are asking on social media, post the minimal version:
-            "We are aware of an issue and investigating. Do not interact with [X] until further notice."
-
-30-60 min:  Full initial notice once you have enough facts to be specific
-
-Every 2h:  Update post — even if it's just "investigation ongoing, funds remain secure"
-
-Post-resolution: Full post-mortem within 72 hours
+0-30 min: post only if users must act; otherwise draft and prepare.
+30-60 min: publish initial notice + next update time (UTC).
+Every 2h: publish an update on schedule.
+Post-resolution: publish a full post-mortem within 72 hours.
 ```

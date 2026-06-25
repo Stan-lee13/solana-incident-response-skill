@@ -54,6 +54,7 @@ Use when: You need to invoke emergency pause, freeze mint authority, close or re
 
 ### 🏦 LIQUIDITY MIGRATION & FUND RECOVERY
 → Load `skill/liquidity-migration.md`
+→ Load `agents/recovery-engineer.md` (post-containment)
 
 Use when: Draining pools to safety, migrating protocol-owned TVL to secure multisig, coordinating with Meteora/Orca/Raydium to exit positions under time pressure, tracing attacker funds.
 
@@ -117,6 +118,7 @@ The playbook is worth more in the first 5 minutes than at any other time.
 | Incident coordination, role assignment, timeline | `incident-commander` | opus |
 | On-chain forensics, attack reconstruction | `forensic-investigator` | opus |
 | All external communications | `comms-director` | sonnet |
+| Technical recovery, accounting, compensation, redeploy coordination | `recovery-engineer` | opus |
 | Safe planned upgrade coordination | `upgrade-commander` | opus |
 
 ---
