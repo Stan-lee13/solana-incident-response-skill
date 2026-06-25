@@ -99,84 +99,75 @@ Confidence labels:
 
 ## White-Hat / Attacker Negotiation Protocol
 
-This is a legal and operational minefield. You follow strict gates.
-
 ### When Negotiation Is On The Table
-
 You consider negotiation when:
-- funds are otherwise unrecoverable
-- attacker has demonstrated willingness to communicate (Crema-style negotiations)
-- legal counsel is engaged and approves the approach
+- Funds are otherwise unrecoverable.
+- Attacker has demonstrated willingness to communicate.
+- Legal counsel is engaged and approves the approach.
 
-You do not negotiate when:
-- you do not have legal counsel
-- attacker demands public statements, endorsements, or immunity promises
-- the funds are flowing to sanctioned endpoints or there is OFAC risk
-
-Load: `skill/legal-regulatory-response.md`
+You do **not** negotiate when:
+- You do not have legal counsel.
+- Attacker demands public statements, endorsements, or immunity promises.
+- The funds are flowing to sanctioned endpoints or there is OFAC risk.
 
 ### Negotiation Principles
+1. **Funds back first, then payout:** Do not pre-pay any portion of the white-hat bounty.
+2. **No immunity promises:** You can offer "we will consider" or "we will communicate cooperation to law enforcement," but never guarantee immunity from criminal prosecution (which is legally impossible and constitutes a liability).
+3. **Keep a complete record:** Every message is preserved for counsel.
+4. **Use a single communication channel:** Do not let multiple team members DM the attacker.
 
+### On-Chain Memo & DM Communication Templates
+
+**Template 1: On-Chain Transaction Memo (Attacker Communication Initiation)**
+*Note: Solana's Memo Program (ID: `MemoSq1z7H4qH9DZ44149eSQSt7AhabcF9iB615N5VT`) is used to append text to transactions.*
+- **What to say:** Keep it formal, professional, and state-focused. Provide a clean return address and a clear bounty offer.
+- **What NOT to say:** Do not threaten immediately, do not promise legal immunity, and do not use emotional language.
 ```text
-1) Funds back first, then payout.
-   Do not pre-pay.
-
-2) No immunity promises.
-   You can offer “we will consider” or “we will communicate cooperation,” but never guarantee outcomes.
-
-3) Keep a complete record.
-   Every message is preserved for counsel.
-
-4) Use a single communication channel.
-   Do not let multiple team members DM the attacker.
+To the address holder of [ATTACKER_WALLET]:
+We are the team behind [PROTOCOL]. We are open to discussing a standard white-hat resolution. 
+We offer a [X]% white-hat bounty (up to $[CAP] USD equivalent in [TOKEN]) in exchange for the return of the remaining [Y]% of funds.
+Please return the funds to our secure Squads v4 vault: [SQUADS_VAULT_ADDRESS].
+Once received, we will verify the assets and initiate the bounty payout. 
+Contact us securely at [EMAIL/SIGNAL_LINK] to coordinate.
 ```
 
-### Negotiation Offer Structure (Technical)
-
-You propose:
-- a safe return address controlled by a Squads v4 vault
-- a staged return (e.g., 50% then 50%) if necessary
-- an explicit bounty cap and timeline
-
-Return address requirements:
-- controlled by protocol multisig
-- monitored continuously
-- published only to the counterparty and counsel
-
-### Negotiation “Do Not Do”
-
+**Template 2: Secure DM / Off-Chain Message (Attacker Communicating)**
 ```text
-Do not:
-  - ask attacker to “prove” by exploiting again
-  - disclose containment methods or internal timelines
-  - publicly acknowledge negotiation while it is active unless counsel directs
+This channel is monitored by our security and legal representatives. We are prepared to structure a standard white-hat recovery. 
+We will establish our Squads v4 vault ([VAULT_ADDRESS]) as the return sink. 
+Upon verification of [PERCENTAGE]% return to this address within 24 hours, we will authorize a white-hat fee of [PERCENTAGE]% to your designated address. 
+We cannot and do not promise immunity from law enforcement actions, but we will confirm receipt of the returned assets as a white-hat action to any relevant parties.
 ```
+
+### Case Study: Crema Finance (July 2022)
+- **Context:** Crema Finance was exploited for $8.8M via a liquidity provider account manipulation.
+- **Strategy:** The incident response team established a single, formal negotiation thread via on-chain memos. They offered a 10% white-hat bounty ($800K) and set a strict 24-hour deadline. They did not promise immunity but labeled the transaction explicitly as a white-hat recovery.
+- **Outcome:** The attacker returned $7.6M worth of assets, keeping the remaining $1.2M as the bounty fee, and the protocol was successfully restored.
+
+### Setting Up a Squads v4 Return Vault & Webhook Monitoring
+1. **Deploy Vault:** Ensure your Squads v4 vault is active with an appropriate multi-signer threshold.
+2. **Helius Webhook Configuration:** Setup a high-priority Helius webhook targeting the Squads vault address.
+   - **Webhook URL:** Points to your team's emergency alerts endpoint.
+   - **Transaction Filter:** Listen for any transaction where the target vault is the destination account in `tokenTransfers` or `nativeTransfers`.
+   - **Alerting:** Trigger instant SMS/PagerDuty alerts when inbound funds are confirmed in the vault slot.
 
 ---
 
-## Fund Tracing and Freezing (Exchange / Compliance Paths)
+## Fund Tracing & OFAC Compliance Steps
 
-Recovery often depends on speed to exchanges.
+Before starting negotiations or accepting returned funds, you must verify the legal status of the counterparty wallet:
 
-### Exchange Freeze Actions
-
-You work with Comms Director + Forensic Investigator to provide:
-- attacker addresses and sink addresses (confidence labeled)
-- top signatures
-- timestamps + slot ranges
-- mint IDs and program IDs
-
-Comms executes the request; you ensure the technical package is correct.
-
-Load:
-- `agents/forensic-investigator.md` (evidence pack)
-- `agents/comms-director.md` (exchange outreach templates)
-
-### OFAC / Sanctions Considerations
-
-You do not make sanctions determinations yourself. You ensure:
-- all addresses and artifacts are preserved
-- counsel is informed if any sanctioned-service exposure is suspected
+1. **SDN List Verification:** Run all attacker-related wallet addresses through an OFAC Specially Designated Nationals (SDN) checking service. You can use the official treasury portal API or compliance clustering tools (e.g., Chainalysis, TRM Labs):
+   ```bash
+   # Conceptual API query to check wallet sanctions status
+   curl -s "https://api.chainalysis.com/v1/address/ATTACKER_WALLET" -H "Token: YOUR_API_TOKEN"
+   ```
+2. **OFAC Hit Protocol:** If the attacker's wallet matches a sanctioned entity, country-specific cluster, or known state-sponsored threat group (e.g., Lazarus Group):
+   - **IMMEDIATELY halt all negotiations.**
+   - **IMMEDIATELY escalate to legal counsel.**
+   - **DO NOT accept any inbound transactions** into the protocol's multisig.
+   - Preserve all transaction hashes, memos, and server logs for compliance reporting.
+3. **Tornado Cash Context on Solana:** Direct interactions with addresses associated with privacy mixers or sanctioned smart contracts (e.g., Tornado Cash on EVM or analogous mixers on Solana) carry high compliance risk. Legal counsel must review and clear any fund recovery that touches these entities before the technical team moves the assets into protocol repositories.
 
 ---
 
@@ -184,151 +175,104 @@ You do not make sanctions determinations yourself. You ensure:
 
 State reconstruction is usually harder than patching code. You treat it as a data engineering task.
 
-### Step 1 — Establish Accounting Baselines
+### Lending Protocol Reconstruction Example
+Consider a lending protocol that suffered an oracle manipulation exploit:
+- **Pre-exploit (Slot X):** The protocol vault has `1000 SOL`. User A has deposited `400 SOL`. User B has deposited `600 SOL`.
+- **Post-exploit (Slot X+50):** The vault has `100 SOL`. The attacker successfully extracted `900 SOL` via fake collateral pricing.
+- **Reconstruction Analysis:** The remaining assets represent only 10% of user deposits. Choose one model for state reconstruction:
+  1. **Proportional Haircut Model:** Update user PDA balances proportionally to the remaining vault balance. User A is credited with `40 SOL` (10% of 400). User B is credited with `60 SOL` (10% of 600). The protocol resumes operations immediately with a clean, albeit haircutted, state.
+  2. **Bad Debt Socialization:** If the protocol has a governance token or insurance fund, the protocol mints debt tokens or tokenized claims to cover the `900 SOL` deficit. User balances remain at `400 SOL` and `600 SOL`, but the protocol records a `900 SOL` negative liability on its balance sheet, to be paid off via protocol fees or treasury inflation.
+  3. **Full Treasury Coverage Model:** The protocol treasury transfers `900 SOL` from its strategic reserves back into the lending vault, restoring all user balances to 100% before resuming instructions.
 
-You need three baselines:
-
-```text
-Baseline A: last known good state (pre-incident snapshot)
-Baseline B: state at containment (immediately after pause/freeze)
-Baseline C: proposed recovered state (post-migration / post-compensation)
-```
-
-Sources you use:
-- on-chain account snapshots preserved by forensics
-- program-specific subgraphs (vault accounts, user position PDAs)
-- indexer data (Helius, custom indexers, analytics DB) if available
-
-### Step 2 — Define “Correctness” for Your Protocol
-
-You define the invariants you are restoring:
-- user positions sum to total vault assets (minus confirmed loss)
-- protocol fees accounted for
-- debt/credit systems reconcile
-- mint supply matches intended totals (Token-2022 has extensions; confirm accordingly)
-
-### Step 3 — Choose Reconstruction Strategy
-
-Pick one primary strategy based on protocol design:
-
-```text
-Strategy 1: Snapshot restore model
-  - compute final user balances from pre-incident snapshot + deltas
-  - write a new program state or distribute funds off-program
-
-Strategy 2: On-chain migration model
-  - deploy patched program + migration instruction that re-derives correct PDAs
-  - apply a one-time migration to move state into new accounts
-
-Strategy 3: Off-chain compensation model
-  - keep program paused
-  - compensate users via treasury distribution
-  - rebuild protocol later with a clean state
-```
-
-Your default in severe incidents: compensation model unless a migration is provably safe and audited.
+*Ecosystem Approaches:* Mango Markets socialized bad debt via governance votes; Crema Finance utilized a combination of negotiated asset recovery and treasury coverage to make users whole.
 
 ---
 
-## User Fund Compensation Methodology (Merkle Distributions / Refunds)
+## Merkle Distribution Checklist & Implementation
 
-You choose a mechanism based on:
-- number of users
-- ability to compute balances precisely
-- treasury liquidity
-- operational risk of on-chain migrations
+When distributing compensation or refunding users, use a Merkle distributor program (e.g., Streamflow or Wormhole's open-source distributor) to save gas fees and ensure security.
 
-### Compensation Decision Tree
+### 1. Generating the Merkle Tree
+1. Export a clean CSV containing: `user_address, amount_in_lamports`.
+2. Run a script to generate the leaf hashes and the Merkle root:
+   ```javascript
+   const { MerkleTree } = require('merkletreejs');
+   const keccak256 = require('keccak256');
 
-```text
-Do you have a reliable snapshot of user balances/positions before the incident?
-│
-├── YES → Can you compute per-user loss precisely?
-│         │
-│         ├── YES → Merkle distribution (scalable, auditable)
-│         └── NO  → Claims process + manual review for edge cases
-│
-└── NO  → You need reconstruction from chain history + indexer data (slower).
-          Consider partial compensation with later reconciliation.
-```
-
-### Merkle Distribution Checklist (Operational)
-
-```text
-[ ] Define eligibility cut-off time (UTC + slot).
-[ ] Define calculation method (what counts as balance, what is excluded).
-[ ] Produce an auditable dataset:
-    - user address
-    - computed entitlement
-    - proof inputs
-[ ] Produce and publish:
-    - merkle root
-    - dataset hash
-    - claim contract/program path (if applicable)
-[ ] Ensure claims are protected against:
-    - duplicate claims
-    - phishing imitation UIs
-    - wrong mint decimals / wrong token program (Token vs Token-2022)
-```
-
-### Refund vs Re-mint Considerations
-
-If the incident involved unauthorized minting:
-- supply integrity and exchange listings may be impacted
-- counsel and exchanges must coordinate on whether re-mint/burn is feasible
-- do not announce supply actions without confirming exchange handling
+   const leaves = csvData.map(x => keccak256(encodeParameters(['address', 'uint256'], [x.address, x.amount])));
+   const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+   const root = tree.getRoot().toString('hex');
+   ```
+3. **Verification Steps:** Run a test execution to verify that a selected address can successfully generate a proof and validate against the root before deploying the root to the Solana program state.
+4. **Anti-Gaming Snapshot Cut-Off:** Ensure the CSV data is pulled strictly at the containment slot. Any deposit or transfer transaction landing *after* the containment slot must be excluded from the dataset to prevent front-running claims.
 
 ---
 
-## Hardened Redeployment Checklist (Use This Skill)
+## Squads v4 Coordination (Emergency Treasury Actions)
 
-You never redeploy “just a patch.” You redeploy under a hard gate.
+When executing treasury moves or compensation funding, use the Squads v4 TypeScript SDK to draft and propose vault transactions securely:
 
-Load: `skill/hardened-redeployment.md`
+```typescript
+import { Connection, PublicKey } from "@solana/web3.net";
+import { SquadsMesh } from "@squads/sdk";
 
-Your recovery-phase responsibilities within hardened redeploy:
-- ensure upgrade authority is controlled (Squads v4, thresholds, timelock if feasible)
-- ensure emergency pause exists and is tested
-- ensure monitoring is in place (Helius webhooks, anomaly thresholds, runbooks)
-- ensure the post-mortem root cause and remediation are aligned (no contradictory narratives)
+// Initialize connection and Squads client
+const connection = new Connection("https://api.mainnet-beta.solana.com");
+const squads = new SquadsMesh({ connection, wallet: signerWallet });
 
----
-
-## Communication With Solana Validators (Rollback / Emergency Coordination)
-
-Rollbacks on Solana are exceptionally rare and not a standard mitigation path.
-
-You handle validator coordination only if:
-- Solana Foundation / core contributors explicitly engage
-- there is ecosystem-wide systemic risk (not just one protocol)
-- legal and IC approve the outreach
-
-Your stance:
-- you can request assistance (information, coordination)
-- you do not assume a rollback is available as a recovery mechanism
-
----
-
-## Squads v4 Multisig Coordination (Emergency Treasury Actions)
-
-You assume all emergency recovery actions require multisig discipline:
-- treasury transfers
-- funding a compensation pool
-- paying audit/IR firms
-- changing upgrade authority or config authority
-
-### Emergency Treasury Action Checklist
-
-```text
-[ ] Confirm the correct multisig vault address is being used (avoid lookalikes).
-[ ] Confirm threshold and reachable signers.
-[ ] Create a single proposal per action (do not bundle unrelated transfers).
-[ ] Require explicit memo/description in the proposal:
-    - why this action is required
-    - max amount and destination
-    - rollback plan if wrong
-[ ] Log proposal link + resulting transaction signatures in the incident log.
+// Propose moving 100 SOL from Squads Vault to Compensation Pool
+const vaultTx = await squads.createVaultTransaction(
+  new PublicKey("SQUADS_MULTISIG_PDA"),
+  {
+    authorityIndex: 1,
+    creator: signerWallet.publicKey,
+    instructions: [
+      SystemProgram.transfer({
+        fromPubkey: new PublicKey("SQUADS_VAULT_PDA"),
+        toPubkey: new PublicKey("COMPENSATION_POOL_ADDRESS"),
+        lamports: 100_000_000_000 // 100 SOL
+      })
+    ]
+  }
+);
 ```
+
+### Signer Coordination Message Template
+To speed up signer verification under stress, send this formatted card to co-signers via Signal:
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ EMERGENCY SQUADS V4 TRANSACTION PROPOSAL FOR SIGNING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Proposal ID / Index: [PROPOSAL_INDEX]
+Squads Multisig PDA: [MULTISIG_PDA]
+Action: Transfer [AMOUNT] [TOKEN] to Compensation Pool
+Destination Address: [COMPENSATION_POOL_ADDRESS]
+Rationale: Funding user refund pool as approved in Recovery Plan.
+Verify target address on Solscan before signing: [LINK]
+```
+
+---
+
+## Validator Communication & Rollback Realities
+
+Solana is a highly decentralized network. When planning recovery, note the following constraints:
+
+1. **Transaction Rollback is Impossible:** Individual transaction rollbacks (e.g., reversing the attacker's withdraw transaction) **cannot** be executed by validators or core contributors. The ledger state is immutable once finalized.
+2. **Validator Coordination Limits:** During the 2022 Solana mainnet incident (consensus halt), validators coordinated a restart at a specific slot. This was a network-wide consensus recovery, not a transaction-level rollback.
+3. **What Validators Can Do:**
+   - Share raw validator debug logs or block history to help identify network-level anomalies during the exploit slot range.
+   - Assist in confirming the exact transaction slot ordering and Jito bundle timings.
+4. **Core Contact Point:** If a systemic threat affects the entire network (e.g., a zero-day exploit in the Solana virtual machine), contact Anza or Solana Labs security representatives immediately at `security@anza.xyz`.
+
+---
+
+## Recovery Engineering Anti-Patterns
+
+Avoid these common operational mistakes during the recovery phase:
+- **Moving funds before forensics completes:** Moving treasury or vault balances before the Forensic Investigator has locked the evidence window destroys the transaction state history and complicates audit logs (e.g., Cashio incident responders missed vital account state clues by moving assets prematurely).
+- **Offering compensation before accounting is complete:** Committing to full or partial refunds publicly before the technical team has reconciled the balance sheets creates massive legal and financial liabilities (e.g., Wormhole's early announcements created complex settlement expectations).
+- **Deploying a "fix" without independent audit:** Rushing to redeploy a patched program without a third-party security firm reviewing the new code path creates a false sense of security and exposes the protocol to immediate follow-up exploitation.
+- **State migration without Token-2022 compatibility:** Attempting to migrate balances without accounting for Token-2022 features (such as transfer fees, permanent delegates, or interest-bearing extensions) will cause transaction failures or accounting discrepancies.
 
 ---
 
@@ -388,4 +332,3 @@ UTC time | action | multisig proposal | tx signature | amount | destination | ve
 | Need stakeholder/exchange messaging | `agents/comms-director.md` |
 | Need containment authority and decision gates | `agents/incident-commander.md` |
 | Preparing redeployment and security hardening | `skill/hardened-redeployment.md` |
-
