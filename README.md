@@ -24,8 +24,10 @@ This revision upgrades the repo from a collection of strong sub-skills into a co
 
 - Rebuilt the incident commander, forensic investigator, and communications director agents for real-time crisis orchestration.
 - Added a recovery engineer agent for post-containment recovery and redeployment decisions.
-- Expanded the commands into full operational triage and incident workflow tools.
+- Expanded the commands into full operational triage, readiness, and incident workflow tools.
+- Added bridge incident response coverage for wrapped assets, relayers, guardians, and cross-chain supply integrity.
 - Added ecosystem-signals.md to define handoffs between this skill and the other Solana AI Kit skills.
+- Added markdown validation CI for link and lint checks.
 
 ---
 
@@ -38,6 +40,9 @@ solana-incident-response-skill/
 ├── CLAUDE.md                          # Claude Code configuration
 ├── install.sh                         # One-command installer
 ├── LICENSE                            # MIT
+├── .github/workflows/markdown-validation.yml # Markdown lint/link CI
+├── .markdownlint.json                 # Markdown lint rules
+├── .lychee.toml                       # Link-check rules
 ├── ecosystem-signals.md              # Cross-skill coordination protocol with other Solana skills
 │
 ├── skill/
@@ -45,6 +50,7 @@ solana-incident-response-skill/
 │   ├── active-exploit-response.md     # First-hour incident containment playbook
 │   ├── program-freeze-and-pause.md    # Squads v4 freeze, pause, and authority controls
 │   ├── liquidity-migration.md         # Drain mitigation and fund movement to safety
+│   ├── bridge-incident-response.md    # Cross-chain, wrapped asset, relayer, and bridge incident playbook
 │   ├── crisis-communication.md        # Stakeholder messaging and incident notice templates
 │   ├── post-mortem-analysis.md        # Forensic reconstruction and public timeline guidance
 │   ├── hardened-redeployment.md       # Recovery and relaunch hardening checklist
@@ -62,7 +68,11 @@ solana-incident-response-skill/
 │   ├── incident-triage.md             # /incident-triage — severity classification and activation plan
 │   ├── draft-incident-notice.md       # /draft-incident-notice — public notice drafts in multiple formats
 │   ├── freeze-checklist.md            # /freeze-checklist — Solana-specific emergency freeze steps
+│   ├── incident-readiness-drill.md     # /incident-readiness-drill — pre-incident tabletop and systems drill
 │   └── post-mortem-template.md        # /post-mortem-template — industry-style post-mortem structure
+│
+├── docs/
+│   └── markdown-validation.md         # CI and local validation guidance
 │
 └── rules/
     └── incident-safety.md             # Guardrails for legal, disclosure, and operational safety
@@ -76,8 +86,11 @@ solana-incident-response-skill/
 # One-line install
 curl -sSL https://raw.githubusercontent.com/Stan-lee13/solana-incident-response-skill/main/install.sh | bash
 
-# Into .agents/ for non-Claude tools
+# Into ~/.agents/skills for Zed or other agent tools
 curl -sSL https://raw.githubusercontent.com/Stan-lee13/solana-incident-response-skill/main/install.sh | bash -s -- --agents
+
+# Non-interactive install
+curl -sSL https://raw.githubusercontent.com/Stan-lee13/solana-incident-response-skill/main/install.sh | bash -s -- --yes
 ```
 
 ---
@@ -87,7 +100,7 @@ curl -sSL https://raw.githubusercontent.com/Stan-lee13/solana-incident-response-
 ### 🚨 Active exploit right now
 
 ```text
-Load agents/incident-commander.md — active exploit on [PROGRAM_ID], funds moving, containment required now.
+Load skill/active-exploit-response.md + skill/program-freeze-and-pause.md + agents/incident-commander.md — active exploit on [PROGRAM_ID], funds moving, containment required now.
 ```
 
 ### 🔍 Suspicious activity, not yet confirmed
@@ -100,6 +113,18 @@ Load skill/anomaly-detection.md — unusual transaction pattern or authority cha
 
 ```text
 Run /freeze-checklist — program [PROGRAM_ID], upgrade authority is Squads 3-of-5.
+```
+
+### 🌉 Bridge / cross-chain incident
+
+```text
+Load skill/bridge-incident-response.md — wrapped asset supply mismatch on [MINT], bridge route [SOURCE] → Solana.
+```
+
+### 🧪 Run readiness drill
+
+```text
+Run /incident-readiness-drill — tabletop scenario: oracle manipulation against [PROGRAM_ID].
 ```
 
 ### 📢 Draft the incident notice
@@ -126,27 +151,35 @@ Load agents/recovery-engineer.md — post-containment recovery, compensation, an
 
 | Phase | Primary File | Time Window |
 |-------|--------------|-------------|
-| Pre-exploit monitoring | `anomaly-detection.md` | Continuous |
-| Active exploit detection | `active-exploit-response.md` | Minutes 0–60 |
-| Freeze / pause execution | `program-freeze-and-pause.md` | Minutes 5–30 |
-| Fund migration and containment | `liquidity-migration.md` | Minutes 15–120 |
-| Crisis communications | `crisis-communication.md` | Minutes 30–72h |
-| Forensic reconstruction | `post-mortem-analysis.md` | Hours 2–72 |
-| Legal and regulatory response | `legal-regulatory-response.md` | Hours 2–30 days |
-| Recovery and redeployment | `hardened-redeployment.md` | Days 7–90 |
-| Planned upgrade safety | `program-upgrade-safety.md` | Planned |
+| Pre-exploit monitoring | `skill/anomaly-detection.md` | Continuous |
+| Active exploit detection | `skill/active-exploit-response.md` | Minutes 0–60 |
+| Freeze / pause execution | `skill/program-freeze-and-pause.md` | Minutes 5–30 |
+| Fund migration and containment | `skill/liquidity-migration.md` | Minutes 15–120 |
+| Bridge / cross-chain incident | `skill/bridge-incident-response.md` | Minutes 0–120 |
+| Crisis communications | `skill/crisis-communication.md` | Minutes 30–72h |
+| Forensic reconstruction | `skill/post-mortem-analysis.md` | Hours 2–72 |
+| Legal and regulatory response | `skill/legal-regulatory-response.md` | Hours 2–30 days |
+| Recovery and redeployment | `skill/hardened-redeployment.md` | Days 7–90 |
+| Planned upgrade safety | `skill/program-upgrade-safety.md` | Planned |
+| Readiness drill | `commands/incident-readiness-drill.md` | Monthly / pre-launch |
 
 ---
 
 ## Cross-Skill Coordination
 
-The repo also includes ecosystem-signals.md, a handoff protocol for the wider Solana AI Kit ecosystem. It defines when this skill passes work to observability, token launch, UX, and DePIN skills, and when it receives incident signals back from them.
+The repo also includes `ecosystem-signals.md`, a handoff protocol for the wider Solana AI Kit ecosystem. It defines when this skill passes work to observability, token launch, UX, and DePIN skills, and when it receives incident signals back from them.
 
 Typical handoffs include:
 - observability → incident-triage when anomalies exceed severity thresholds
 - incident-response → token-launch when a token contract or mint authority is compromised
 - incident-response → UX when a frontend or wallet flow is affected
 - incident-response → DePIN hardening when an oracle or node network exploit is involved
+
+---
+
+## Validation
+
+Markdown quality is checked by `.github/workflows/markdown-validation.yml` on pull requests and pushes. It runs markdown linting and link validation using `.markdownlint.json` and `.lychee.toml`. Local instructions live in `docs/markdown-validation.md`.
 
 ---
 

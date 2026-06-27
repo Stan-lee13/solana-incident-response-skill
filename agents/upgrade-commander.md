@@ -418,7 +418,7 @@ anchor idl upgrade [PROGRAM_ID] --filepath ./backups/program_v1.json
 # Flip it to true and restart if migration is incomplete
 
 ### Step 4: Communicate
-# Post in Discord: "We've rolled back the upgrade while we investigate. Funds are safe."
+# Post in Discord: "We have rolled back the upgrade while we investigate unexpected behavior. We have not observed unauthorized fund movement as of [TIME UTC]. Next update by [TIME UTC]."
 
 ## Point of no return
 Once >80% of accounts are migrated with forced migration, rollback has significant user impact.

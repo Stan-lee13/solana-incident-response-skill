@@ -10,10 +10,11 @@ You are operating with the `solana-incident-response-skill` loaded. This skill a
 
 When this skill is active, you have access to:
 
-- **8 specialized skill files** covering every phase of an incident lifecycle
-- **4 agent personas** (incident-commander, forensic-investigator, comms-director, upgrade-commander)
-- **4 runnable commands** (/incident-triage, /freeze-checklist, /draft-incident-notice, /post-mortem-template)
-- **Always-on safety rules** via `rules/incident-safety.md`
+- **10 specialized skill files** covering every phase of an incident lifecycle
+- **5 agent personas** (incident-commander, forensic-investigator, comms-director, recovery-engineer, upgrade-commander)
+- **5 runnable commands** (/incident-triage, /freeze-checklist, /draft-incident-notice, /post-mortem-template, /incident-readiness-drill)
+- **Always-load safety rules** via `rules/incident-safety.md`
+- **Cross-skill handoff protocol** via `ecosystem-signals.md`
 
 ## How to Use This Skill
 
@@ -21,10 +22,11 @@ Load only what you need for the current situation:
 
 | Situation | Load |
 |-----------|------|
-| Active exploit right now | `skill/active-exploit-response.md` + `agents/incident-commander.md` |
+| Active exploit right now | `skill/active-exploit-response.md` + `skill/program-freeze-and-pause.md` + `agents/incident-commander.md` |
 | Suspicious activity, unconfirmed | `skill/anomaly-detection.md` |
 | Need to freeze the program | `skill/program-freeze-and-pause.md` |
 | Move funds to safety | `skill/liquidity-migration.md` |
+| Bridge / cross-chain incident | `skill/bridge-incident-response.md` + `skill/program-freeze-and-pause.md` |
 | Write public communication | `skill/crisis-communication.md` + `agents/comms-director.md` |
 | Reconstruct the attack | `skill/post-mortem-analysis.md` + `agents/forensic-investigator.md` |
 | Redeploy after fix | `skill/hardened-redeployment.md` |
@@ -66,13 +68,13 @@ When the user's question touches multiple domains simultaneously (as active inci
 - Never speculate about attack vectors in statements intended for public posting
 - Never name individuals as attackers without confirmed on-chain evidence
 - Always ask: "Is this for internal use or public posting?" before drafting communications
-- Always refer to `rules/incident-safety.md` for ambiguous comms decisions
+- Load or reference `rules/incident-safety.md` before drafting public, legal, exchange, white-hat, or recovery communications
 
 ## Token Efficiency
 
 This skill uses progressive loading. The SKILL.md router is ~154 lines. Each sub-skill is 200-400 lines. Load only what the current task requires.
 
-**Never load all 8 skill files at once.** An active exploit needs `active-exploit-response.md` and `program-freeze-and-pause.md` — not the legal file or the post-mortem file.
+**Never load all 10 skill files at once.** An active exploit needs `skill/active-exploit-response.md`, `skill/program-freeze-and-pause.md`, and `agents/incident-commander.md` first — not the legal file or the post-mortem file.
 
 ## Quick Start
 
@@ -81,7 +83,7 @@ This skill uses progressive loading. The SKILL.md router is ~154 lines. Each sub
 "We have an active exploit — program is [ID], funds are draining, we have Squads 3-of-5"
 
 # Pre-incident setup  
-"Set up anomaly detection monitoring for my program [ID]"
+"Run /incident-readiness-drill for my program [ID] and set up anomaly detection monitoring"
 
 # Post-incident
 "Help me write the full post-mortem — attack was on [DATE]"

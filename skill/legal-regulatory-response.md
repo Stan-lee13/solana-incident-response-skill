@@ -48,6 +48,23 @@ Your counsel will tell you this immediately — we are telling you now.
 
 ---
 
+## Jurisdiction Intake Matrix
+
+Before deciding reporting obligations, identify the legal footprint. Most Solana teams span multiple jurisdictions.
+
+| Question | Why it matters |
+|---|---|
+| Where is the operating entity incorporated? | Determines corporate, breach, and regulator obligations. |
+| Is there a foundation, DAO wrapper, Cayman/BVI entity, Swiss association, Singapore company, UAE entity, or US company? | Each structure has different reporting and board approval requirements. |
+| Where are users located? | EU, UK, US, and Singapore user exposure can trigger separate notice analysis. |
+| Is the token listed on centralized exchanges? | Listing agreements may require rapid security notices. |
+| Does the team custody, route, or control user assets? | May affect MSB, VASP, fiduciary, or consumer-protection analysis. |
+| Was personal data affected? | Triggers privacy/breach notification analysis beyond on-chain loss. |
+
+Treat the sections below as triage prompts for counsel, not final legal determinations.
+
+---
+
 ## Reporting Obligations by Jurisdiction
 
 ### United States
@@ -80,6 +97,18 @@ Article 23 MiCA: significant operational incidents must be reported to the compe
 FCA-regulated entities: notify the FCA within 24 hours.
 Non-regulated DeFi: no mandatory reporting, but engage counsel on civil liability exposure.
 
+### Singapore
+
+If the protocol has a Singapore entity, exchange relationship, or regulated payment-token activity, counsel should assess Monetary Authority of Singapore notification expectations, police reporting, and user-notice obligations.
+
+### Cayman / BVI / Foundation structures
+
+For foundation companies, DAOs, or offshore entities, counsel should review director duties, grant obligations, exchange listing covenants, insurance notice windows, and whether governance approval is required before compensation or treasury movement.
+
+### Switzerland / UAE
+
+For Swiss associations/foundations or UAE entities, counsel should assess FINMA/VARA/ADGM/DFSA touchpoints, user notices, and whether regulated partners need immediate notification.
+
 ### FATF / International
 
 If the attacker is moving funds cross-border, coordinate with:
@@ -93,11 +122,13 @@ If the attacker is moving funds cross-border, coordinate with:
 
 ### When to contact law enforcement
 
-Contact law enforcement if:
-- Funds stolen exceed $250K
+Prepare a law-enforcement briefing and ask counsel whether to file if:
+- Funds stolen exceed $100K
 - You have identified the attacker's real-world identity
 - The attacker is moving funds to exchanges (time-sensitive)
 - You have received threats or extortion demands
+- Sanctions exposure, mixer usage, or cross-border fund movement is present
+- Regulated user data, exchange listings, or insured losses are involved
 
 Do NOT wait to "see if funds are returned" before contacting law enforcement. Early engagement preserves options.
 

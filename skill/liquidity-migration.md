@@ -11,7 +11,19 @@
 
 During an exploit, your objective is not to fight the attacker. It is to minimize total loss.
 Every second you spend trying to understand the attack is a second funds can still be drained.
-Move first, investigate later.
+Move first, investigate later — but do not move funds in a way that leaks the rescue transaction, destroys evidence, or assumes a keypair authority when the vault is PDA/Squads-controlled.
+
+---
+
+## Production Fund-Movement Rules
+
+1. Prefer pause/freeze over drain if pause fully stops loss.
+2. Use Jito bundles or private routing for emergency fund movement when frontrunning or copycat risk exists.
+3. Add compute budget and priority fees for non-bundled fallback transactions.
+4. Use versioned transactions and Address Lookup Tables when mass-withdrawing from many accounts.
+5. Distinguish direct keypair authority, PDA authority via program instruction, and Squads v4 vault authority.
+6. Use the correct token program for each account: legacy SPL Token or Token-2022.
+7. Log every tx signature and destination before announcing recovery status.
 
 ---
 
@@ -35,16 +47,20 @@ export async function assessProtocolFunds(vaultAuthority: string) {
     connection.getTokenAccountsByOwner(authority, { programId: TOKEN_2022_PROGRAM_ID }),
   ]);
   
-  const allAccounts = [...legacyAccounts.value, ...token2022Accounts.value];
+  const allAccounts = [
+    ...legacyAccounts.value.map((a) => ({ ...a, tokenProgram: TOKEN_PROGRAM_ID })),
+    ...token2022Accounts.value.map((a) => ({ ...a, tokenProgram: TOKEN_2022_PROGRAM_ID })),
+  ];
   
   const holdings = await Promise.all(
-    allAccounts.map(async ({ pubkey }) => {
+    allAccounts.map(async ({ pubkey, tokenProgram }) => {
       try {
-        const account = await getAccount(connection, pubkey);
+        const account = await getAccount(connection, pubkey, "confirmed", tokenProgram);
         return {
           address: pubkey.toString(),
           mint: account.mint.toString(),
           amount: account.amount.toString(),
+          tokenProgram: tokenProgram.toString(),
           isFrozen: account.isFrozen,
           isCloseable: account.amount === 0n,
         };
@@ -74,18 +90,21 @@ export async function assessProtocolFunds(vaultAuthority: string) {
 The fastest move — transfer all token balances to a pre-designated safe wallet.
 
 **CRITICAL**: Pre-designate this safe wallet BEFORE an incident. It should be:
-- A hardware wallet you control
-- Not connected to any protocol infrastructure
-- Known to all core team members
+- A Squads v4 treasury vault or hardware wallet controlled by emergency signers
+- Not connected to protocol infrastructure or frontend deploy keys
+- Known to all core team members and counsel
 - Documented in your security runbook
+
+Use the direct-transfer example below only when the vault authority is a keypair you control. If the authority is a PDA, call the protocol's emergency withdrawal instruction. If it is Squads-controlled, build a Squads v4 vault transaction instead of signing locally.
 
 ```typescript
 // scripts/incident/emergency-drain.ts
-import { Connection, PublicKey, Keypair, Transaction } from "@solana/web3.js";
+import { Connection, PublicKey, Keypair, Transaction, ComputeBudgetProgram } from "@solana/web3.js";
 import {
   createTransferInstruction,
   getOrCreateAssociatedTokenAccount,
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import * as fs from "fs";
 
@@ -93,7 +112,7 @@ const SAFE_WALLET = new PublicKey(process.env.EMERGENCY_SAFE_WALLET!);
 
 async function emergencyDrainAllTokens(
   vaultAuthority: Keypair,
-  tokenAccounts: Array<{ address: string; mint: string; amount: string }>
+  tokenAccounts: Array<{ address: string; mint: string; amount: string; tokenProgram: string }>
 ) {
   const connection = new Connection(process.env.HELIUS_RPC_URL!, "confirmed");
   
@@ -108,12 +127,21 @@ async function emergencyDrainAllTokens(
     if (tokenAccount.amount === "0") continue;
     
     try {
-      // Get or create destination ATA on the safe wallet
+      const tokenProgram = new PublicKey(tokenAccount.tokenProgram);
+      if (![TOKEN_PROGRAM_ID.toString(), TOKEN_2022_PROGRAM_ID.toString()].includes(tokenProgram.toString())) {
+        throw new Error(`Unexpected token program for ${tokenAccount.address}`);
+      }
+
+      // Get or create destination ATA on the safe wallet using the correct token program
       const destATA = await getOrCreateAssociatedTokenAccount(
         connection,
         vaultAuthority, // Fee payer for ATA creation
         new PublicKey(tokenAccount.mint),
-        SAFE_WALLET
+        SAFE_WALLET,
+        false,
+        "confirmed",
+        undefined,
+        tokenProgram
       );
       
       const ix = createTransferInstruction(
@@ -122,10 +150,15 @@ async function emergencyDrainAllTokens(
         vaultAuthority.publicKey,              // Authority
         BigInt(tokenAccount.amount),           // Amount — drain everything
         [],
-        TOKEN_PROGRAM_ID
+        tokenProgram
       );
       
-      const tx = new Transaction().add(ix);
+      const tx = new Transaction().add(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }),
+        ix
+      );
+      // For P0 drains, prefer submitting this transaction as a Jito bundle.
+      // This public-RPC fallback should be used only when bundle submission is unavailable.
       const sig = await connection.sendTransaction(tx, [vaultAuthority], {
         skipPreflight: false,
         maxRetries: 3,

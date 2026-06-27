@@ -64,7 +64,7 @@ We have identified a security issue affecting [PROTOCOL NAME] and have paused [D
 
 What you should do now:
 → Do not deposit additional funds to [PROTOCOL NAME] until further notice
-→ Your existing positions are [SAFE / BEING ASSESSED — we will update within 1 hour]
+→ Your existing positions are [BEING ASSESSED / UNAFFECTED BASED ON CURRENT ON-CHAIN REVIEW — we will update within 1 hour]
 → Follow this account for updates — we will post every [30/60] minutes
 
 We are actively investigating. Our next update will be at [SPECIFIC TIME UTC].
@@ -90,7 +90,7 @@ Use when: Program is frozen and you've stopped the drain, but full scope not yet
 
 Update on the security incident from [EARLIER TIME]:
 
-✅ [PROGRAM NAME] has been paused. No further exploits are possible while the program is paused.
+✅ [PROGRAM NAME] has been paused. We have not observed new unauthorized movement from the paused component since [TIME UTC].
 
 Current status:
 - We are actively investigating the root cause
@@ -124,8 +124,8 @@ At approximately [TIME UTC], an attacker exploited [a vulnerability in / our] [D
 IMPACT
 Approximately [AMOUNT USD / TOKEN AMOUNT] was affected.
 [X] user wallets had positions impacted.
-All [remaining / other] funds are confirmed secure.
-The exploit has been fully contained.
+All [remaining / other] funds are [being assessed / confirmed unaffected based on current on-chain review].
+No new unauthorized movement has been observed since [TIME UTC].
 
 WHAT WE ARE DOING
 1. Independent security audit: We have engaged [FIRM NAME] to conduct a full audit
@@ -150,12 +150,12 @@ Use when: Funds are held by an attacker who may respond to negotiation. Only aft
 ```
 To the individual who exploited [PROTOCOL NAME] on [DATE]:
 
-We recognize your skill. We have no interest in legal escalation if funds are returned.
+We are prepared to discuss a coordinated return of funds through a legally reviewed recovery process.
 
-Our offer:
-→ Return [X%] of exploited funds to: [RECOVERY_ADDRESS]
-→ Keep [X%] as a bounty ([AMOUNT USD])
-→ We will not pursue legal action or share your identity with authorities
+Proposed recovery path, subject to legal review and sanctions screening:
+→ Return [X%] of affected funds to: [RECOVERY_ADDRESS]
+→ The team will evaluate a bounty of up to [X%] ([AMOUNT USD]) after returned funds are verified
+→ We cannot promise immunity, non-reporting, or confidentiality, but constructive cooperation will be documented accurately
 
 This offer expires [DATE + TIME UTC].
 
@@ -279,6 +279,6 @@ BAD signs:
 □ Multiple conflicting pieces of information have been posted (different team members posting)
 □ Team is responding to individual DMs with different information
 □ First notice was posted >90 minutes after incident was confirmed
-□ Post-mortem has been "coming soon" for more than 2 weeks
+□ Post-mortem deadline has slipped more than 2 weeks without a dated explanation
 □ "Funds are SAFU" was posted before it was confirmed on-chain
 ```

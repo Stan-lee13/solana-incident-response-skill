@@ -1,5 +1,5 @@
 name: solana-incident-response
-description: Complete incident response lifecycle for Solana protocols — from active exploit detection through containment, forensic investigation, crisis communication, fund recovery, legal obligations, and hardened redeployment.
+description: Complete incident response lifecycle for Solana protocols — from readiness drills and active exploit detection through containment, bridge incidents, forensic investigation, crisis communication, fund recovery, legal obligations, and hardened redeployment.
 user-invocable: true
 cross-domain: true
 
@@ -8,6 +8,10 @@ cross-domain: true
 > Route to the right sub-skill based on what you need.
 > Load only what is relevant — do not load all files at once.
 > In an active exploit, every second of context loading costs money.
+
+## Code Snippet Safety
+
+This is a markdown knowledge base, not a verified software package. TypeScript, Rust, Bash, and CLI snippets are operational references. Before executing any snippet against mainnet, confirm dependency versions, program IDs, authorities, token program IDs, and multisig approval path. Prefer CLI-first or Squads-reviewed actions during live incidents.
 
 ## Extends
 
@@ -30,9 +34,11 @@ No other single skill in the Solana AI Kit crosses all five domains. This is int
 ## Routing Table
 
 ### 🚨 ACTIVE EXPLOIT RIGHT NOW (ongoing drain)
+→ Load `rules/incident-safety.md`
 → Load `skill/active-exploit-response.md`
 → Load `skill/program-freeze-and-pause.md` (in parallel)
 → Load `agents/incident-commander.md`
+→ Load `agents/forensic-investigator.md` once minimum containment is assigned
 
 Use when: Funds are actively draining, attack is confirmed, every second matters.
 
@@ -57,6 +63,15 @@ Use when: You need to invoke emergency pause, freeze mint authority, close or re
 → Load `agents/recovery-engineer.md` (post-containment)
 
 Use when: Draining pools to safety, migrating protocol-owned TVL to secure multisig, coordinating with Meteora/Orca/Raydium to exit positions under time pressure, tracing attacker funds.
+
+---
+
+### 🌉 BRIDGE / CROSS-CHAIN INCIDENT
+→ Load `skill/bridge-incident-response.md`
+→ Load `skill/program-freeze-and-pause.md`
+→ Load `agents/incident-commander.md`
+
+Use when: Wrapped asset supply, bridge mint authority, guardian signatures, relayers, cross-chain messages, custody lockboxes, or bridge UI routes are affected.
 
 ---
 
@@ -94,7 +109,21 @@ Use when: Need to understand reporting obligations, law enforcement coordination
 → Load `skill/program-upgrade-safety.md`
 → Load `agents/upgrade-commander.md`
 
-Use when: Planning a deliberate, non-emergency program upgrade that involves account layout changes, IDL drift risk, or Squads multisig coordination. This is NOT the emergency upgrade path.
+Use when: Planning a deliberate, non-emergency program upgrade that involves account layout changes, IDL drift risk, or Squads multisig coordination. This is NOT the emergency upgrade path; unexpected authority changes route to active exploit response.
+
+---
+
+### 🔁 CROSS-SKILL HANDOFFS
+→ Load `ecosystem-signals.md`
+
+Use when: Observability, token launch, UX, or DePIN signals need to enter or leave incident response.
+
+---
+
+### 🧪 PRE-INCIDENT READINESS DRILL
+→ Run `/incident-readiness-drill`
+
+Use when: Preparing before launch, TGE, major upgrade, signer rotation, or monthly tabletop exercise.
 
 ---
 
@@ -123,13 +152,14 @@ The playbook is worth more in the first 5 minutes than at any other time.
 
 ---
 
-## Rules (always-on)
+## Rules (load before sensitive outputs)
 
-`rules/incident-safety.md` is auto-loaded and governs all outputs from this skill:
+Load or reference `rules/incident-safety.md` before drafting public, legal, exchange, white-hat, user-facing, or recovery communications:
 - No premature public disclosure
 - No speculation about attack vectors in public statements
 - No attacker attribution without confirmed evidence
-- No restitution promises without legal review
+- No restitution, safety, immunity, or non-reporting promises without legal review
+- No new claim/refund/recovery links during active incidents without approval
 
 ---
 
@@ -137,13 +167,19 @@ The playbook is worth more in the first 5 minutes than at any other time.
 
 ```
 # Active exploit
-"Load agents/incident-commander.md — we have an active exploit on [PROGRAM_ID], funds are draining"
+"Load rules/incident-safety.md + skill/active-exploit-response.md + skill/program-freeze-and-pause.md + agents/incident-commander.md — active exploit on [PROGRAM_ID], funds are draining"
 
 # Suspicious but not confirmed
 "Load skill/anomaly-detection.md — seeing unusual failed transactions from one wallet on [PROGRAM_ID]"
 
+# Bridge incident
+"Load skill/bridge-incident-response.md — wrapped asset supply mismatch on [MINT]"
+
 # Need to freeze now
 "Run /freeze-checklist — program is [PROGRAM_ID], upgrade authority is a 3-of-5 Squads multisig"
+
+# Readiness drill
+"Run /incident-readiness-drill — tabletop for oracle manipulation scenario"
 
 # Write the notice
 "Load agents/comms-director.md — need to write the initial incident notice, exploit confirmed 15 min ago"

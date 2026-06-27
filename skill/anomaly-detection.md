@@ -181,36 +181,59 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import { PriceServiceConnection } from "@pythnetwork/price-service-client";
 
 const PRICE_DEVIATION_THRESHOLD = 0.05; // 5% deviation = alert
+const MAX_CONFIDENCE_RATIO = 0.02;      // confidence >2% of price = degraded
+const MAX_STALENESS_SECONDS = 30;
+
+type OracleSnapshot = {
+  price: number;
+  confidence?: number;
+  publishTime?: number;
+  provider: "pyth" | "switchboard" | "custom";
+};
+
+function normalizePythPrice(raw: { price: string; expo: number; conf: string; publish_time: number }): OracleSnapshot {
+  const scale = Math.pow(10, raw.expo);
+  return {
+    price: Number(raw.price) * scale,
+    confidence: Number(raw.conf) * scale,
+    publishTime: raw.publish_time,
+    provider: "pyth",
+  };
+}
 
 async function detectOracleDeviation(
   pythPriceId: string,
-  onChainOracleAddress: string
-): Promise<{ deviation: number; isAnomaly: boolean; onChainPrice: number; pythPrice: number }> {
-  const connection = new Connection(process.env.HELIUS_RPC_URL!);
+  onChainOracleAddress: string,
+  parseOnChainOracle: (data: Buffer) => OracleSnapshot
+): Promise<{ deviation: number; isAnomaly: boolean; reason: string[]; onChainPrice: number; pythPrice: number }> {
+  const connection = new Connection(process.env.HELIUS_RPC_URL!, "confirmed");
   const pythConnection = new PriceServiceConnection("https://hermes.pyth.network");
-  
-  // Get Pyth reference price
-  const [pythPriceUpdate] = await pythConnection.getLatestPriceFeeds([pythPriceId]);
-  const pythPrice = pythPriceUpdate?.getPriceUnchecked()?.price;
-  
-  if (!pythPrice) throw new Error("Could not fetch Pyth price");
-  
-  // Get on-chain oracle price (varies by oracle provider)
-  const oracleAccount = await connection.getAccountInfo(new PublicKey(onChainOracleAddress));
-  // Parse oracle price from account data (implementation specific to oracle provider)
-  // ...
-  
-  const onChainPrice = 0; // TODO: parse from account data
-  const deviation = Math.abs(onChainPrice - pythPrice) / pythPrice;
-  
-  return {
-    deviation,
-    isAnomaly: deviation > PRICE_DEVIATION_THRESHOLD,
-    onChainPrice,
-    pythPrice,
-  };
+  const [pythFeed] = await pythConnection.getLatestPriceFeeds([pythPriceId]);
+  const pythRaw = pythFeed?.getPriceUnchecked();
+  if (!pythRaw) throw new Error("Could not fetch Pyth reference price");
+
+  const pyth = normalizePythPrice(pythRaw);
+  const oracleAccount = await connection.getAccountInfo(new PublicKey(onChainOracleAddress), "confirmed");
+  if (!oracleAccount) throw new Error("On-chain oracle account not found");
+
+  // Implement parser per provider: Pyth pull account, Switchboard aggregator, or protocol custom oracle PDA.
+  const onChain = parseOnChainOracle(oracleAccount.data);
+  const deviation = Math.abs(onChain.price - pyth.price) / Math.abs(pyth.price);
+  const reason: string[] = [];
+
+  if (deviation > PRICE_DEVIATION_THRESHOLD) reason.push("price_deviation");
+  if (onChain.confidence && Math.abs(onChain.confidence / onChain.price) > MAX_CONFIDENCE_RATIO) reason.push("wide_confidence_interval");
+  if (onChain.publishTime && Date.now() / 1000 - onChain.publishTime > MAX_STALENESS_SECONDS) reason.push("stale_on_chain_price");
+  if (pyth.confidence && Math.abs(pyth.confidence / pyth.price) > MAX_CONFIDENCE_RATIO) reason.push("degraded_reference_price");
+
+  return { deviation, isAnomaly: reason.length > 0, reason, onChainPrice: onChain.price, pythPrice: pyth.price };
 }
 ```
+
+Operational notes:
+- For Pyth, monitor price ID, confidence interval, publish time, and whether the feed is in trading status.
+- For Switchboard, monitor aggregator `latestConfirmedRound`, staleness, queue authority changes, and crank delays.
+- For custom oracle PDAs, document the exact account layout and owner; alert if owner or authority changes.
 
 ---
 
