@@ -113,6 +113,39 @@ Use when: Planning a deliberate, non-emergency program upgrade that involves acc
 
 ---
 
+
+### 🕵️ THREAT INTELLIGENCE & PRE-EXPLOIT SIGNALS
+→ Load `skill/threat-intelligence.md`
+
+Use when: You want to detect attackers BEFORE they strike. Covers probe pattern detection,
+known attacker wallet watchlists, oracle deviation pre-alerts, dark-pool funding detection,
+and governance token accumulation monitoring.
+
+---
+
+### 🔑 WALLET & KEY SECURITY
+→ Load `skill/wallet-security.md`
+
+Use when: A team member's authority key may be compromised, a seed phrase was exposed,
+a drainer contract is targeting your users, or you need to audit key hygiene across
+the protocol team. Covers authority rotation, drainer detection, and key exposure response.
+
+---
+
+### 📋 INCIDENT RUNBOOKS
+→ Load the matching runbook from `runbooks/`
+
+| Incident type | Runbook |
+|---|---|
+| Active fund drain | `runbooks/active-drain.md` |
+| Oracle price manipulation | `runbooks/oracle-manipulation.md` |
+| Unauthorized program upgrade | `runbooks/unauthorized-upgrade.md` |
+| Governance attack / takeover | `runbooks/governance-attack.md` |
+| Bridge supply mismatch | `runbooks/bridge-supply-mismatch.md` |
+| Wallet drainer (frontend) | `runbooks/wallet-drainer.md` |
+
+---
+
 ### 🔁 CROSS-SKILL HANDOFFS
 → Load `ecosystem-signals.md`
 
@@ -190,3 +223,4 @@ Load or reference `rules/incident-safety.md` before drafting public, legal, exch
 # Safe upgrade planning
 "Load agents/upgrade-commander.md — planning upgrade for [PROGRAM], added 2 new fields to UserVault"
 ```
+
