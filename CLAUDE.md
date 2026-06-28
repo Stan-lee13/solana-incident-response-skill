@@ -10,9 +10,9 @@ You are operating with the `solana-incident-response-skill` loaded. This skill a
 
 When this skill is active, you have access to:
 
-- **10 specialized skill files** covering every phase of an incident lifecycle
+- **12 specialized skill files** covering every phase of an incident lifecycle
 - **5 agent personas** (incident-commander, forensic-investigator, comms-director, recovery-engineer, upgrade-commander)
-- **5 runnable commands** (/incident-triage, /freeze-checklist, /draft-incident-notice, /post-mortem-template, /incident-readiness-drill)
+- **5 runnable commands + 6 runbooks** (/incident-triage, /freeze-checklist, /draft-incident-notice, /post-mortem-template, /incident-readiness-drill)
 - **Always-load safety rules** via `rules/incident-safety.md`
 - **Cross-skill handoff protocol** via `ecosystem-signals.md`
 
@@ -32,6 +32,9 @@ Load only what you need for the current situation:
 | Redeploy after fix | `skill/hardened-redeployment.md` |
 | Legal obligations | `skill/legal-regulatory-response.md` |
 | Planned program upgrade | `skill/program-upgrade-safety.md` + `agents/upgrade-commander.md` |
+| Threat intelligence / pre-exploit signals | `skill/threat-intelligence.md` |
+| Wallet / key compromise or drainer | `skill/wallet-security.md` |
+| Quick runbook for specific incident type | `runbooks/<incident-type>.md` |
 
 ## Stack Defaults (2026)
 
@@ -97,3 +100,4 @@ This skill uses progressive loading. The SKILL.md router is ~154 lines. Each sub
 https://github.com/Stan-lee13/solana-incident-response-skill
 
 Built for the Superteam Earn Solana AI Kit bounty.
+
