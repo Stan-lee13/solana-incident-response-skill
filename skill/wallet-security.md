@@ -380,3 +380,404 @@ echo "  Treasury wallet:   [verify in Squads UI at app.squads.so]"
 ### Feeds UX Skill
 - Drainer pattern taxonomy shared with `solana-ux-skill/skill/wallet-ux.md`
 - Transaction analysis patterns used in pre-sign simulation UX
+
+
+---
+
+## Supply Chain Attack on Wallet Frontend
+
+One of the most dangerous and least-discussed vectors: a malicious npm package in your wallet's dependencies that exfiltrates key material silently.
+
+### How It Works
+
+```
+Timeline of a supply chain wallet compromise:
+
+T-30 days: Attacker publishes legitimate-looking npm package or compromises existing one
+           Example: "solana-utils-v2" contains a benign version for 30 days
+
+T-14 days: Attacker submits PR to your repository adding the dependency
+           OR compromises an existing trusted dependency via typosquatting
+
+T-0: Malicious version published — contains exfiltration code:
+     - Hooks into key generation / decryption functions
+     - Extracts key material and POSTs to attacker's C2 server
+     - Obfuscated as legitimate analytics or error reporting traffic
+```
+
+### Detection
+
+```bash
+#!/usr/bin/env bash
+# Run this before every production build and in CI
+
+# 1. Audit all dependencies for known vulnerabilities
+npm audit --audit-level=moderate
+
+# 2. Check for postinstall scripts (common exfiltration vector)
+node -e "
+const pkg = require('./node_modules');
+const fs = require('fs');
+const results = [];
+function checkPackage(dir) {
+  try {
+    const p = JSON.parse(fs.readFileSync(dir + '/package.json', 'utf8'));
+    if (p.scripts?.postinstall) {
+      results.push({ name: p.name, version: p.version, script: p.scripts.postinstall });
+    }
+  } catch {}
+}
+require('glob').sync('node_modules/*/package.json').forEach(f => checkPackage(f.replace('/package.json', '')));
+console.log('Packages with postinstall scripts:');
+results.forEach(r => console.log(r));
+"
+
+# 3. Verify lockfile integrity (never install without lockfile)
+npm ci  # NOT npm install — ci refuses to modify lockfile
+
+# 4. Pin to exact versions — no ranges in package.json
+grep -E '"[^"]+": "\^|~' package.json && echo "WARNING: Unpinned dependencies found"
+
+# 5. Monitor package.json for unexpected additions (CI gate)
+git diff HEAD~1 package.json | grep '"dependencies"' -A 999 | grep '^+'
+```
+
+### Prevention Architecture
+
+```typescript
+// Content Security Policy headers for wallet frontend
+// Add to your server or Cloudflare Worker
+
+export const WALLET_CSP_HEADERS = {
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-eval'",    // 'unsafe-eval' only if required for WASM
+    "style-src 'self' 'unsafe-inline'",   // Tailwind requires inline
+    "connect-src 'self' https://*.helius-rpc.com https://*.quicknode.com",  // RPC only
+    "img-src 'self' data: https:",
+    "font-src 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",             // Block iframe embedding (clickjacking)
+    "upgrade-insecure-requests",
+  ].join("; "),
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+};
+
+// Subresource Integrity for any CDN-loaded scripts
+// In your HTML template:
+// <script src="https://cdn.example.com/lib.js"
+//   integrity="sha384-HASH"
+//   crossorigin="anonymous"></script>
+```
+
+---
+
+## Address Poisoning Response Protocol
+
+If your protocol or users are being targeted by address poisoning attacks:
+
+### Detection (Helius webhook setup)
+
+```typescript
+// src/address-poison-detector.ts
+import { Helius } from "helius-sdk";
+import { PublicKey } from "@solana/web3.js";
+
+/**
+ * Set up webhook to detect address poisoning attempts.
+ * Fires when wallets similar to your known addresses send dust transactions.
+ */
+export async function setupAddressPoisonWebhook(
+  helius: Helius,
+  protocolAddresses: string[]   // Addresses to protect
+): Promise<string> {
+  const webhook = await helius.createWebhook({
+    accountAddresses: protocolAddresses,
+    transactionTypes: ["TRANSFER"],
+    type: "enhanced",
+    webhookURL: process.env.INCIDENT_WEBHOOK_URL!,
+  });
+
+  return webhook.webhookID;
+}
+
+/**
+ * Check if an incoming transaction looks like an address poisoning attempt.
+ * Triggered by webhook — run on every inbound transfer.
+ */
+export function isAddressPoisoningAttempt(
+  incomingTx: any,
+  protocolAddresses: string[]
+): { isPoisoning: boolean; evidence: string } {
+  const sender = incomingTx.feePayer;
+  const amount = incomingTx.nativeTransfers?.[0]?.amount ?? 0;
+
+  // Poisoning characteristics:
+  // 1. Dust amount (< 0.001 SOL)
+  // 2. Sender address visually similar to known protocol address
+  const isDust = amount < 1_000_000; // < 0.001 SOL
+
+  for (const known of protocolAddresses) {
+    const senderFirst6 = sender.slice(0, 6);
+    const senderLast6 = sender.slice(-6);
+
+    if (known.slice(0, 6) === senderFirst6 || known.slice(-6) === senderLast6) {
+      if (isDust) {
+        return {
+          isPoisoning: true,
+          evidence: `Dust transaction (${amount} lamports) from ${sender} — visually similar to known address ${known}`,
+        };
+      }
+    }
+  }
+
+  return { isPoisoning: false, evidence: "" };
+}
+```
+
+### User Response Communication
+
+When address poisoning is detected targeting your users:
+
+```
+Immediate actions:
+1. Post warning on Discord, Twitter, Telegram: "Address poisoning attack detected"
+2. Add warning banner to your frontend: "⚠️ Address poisoning active — verify every character of addresses"
+3. Enable address similarity check in your send flow
+4. Report attacker addresses to Helius and Solscan for labeling
+
+User guidance template:
+---
+🚨 SECURITY ALERT: Address Poisoning Attack
+
+Attackers are sending tiny amounts from addresses that look like [PROTOCOL NAME] addresses.
+
+If you recently copied an address from your transaction history, STOP.
+
+✅ How to stay safe:
+1. Never copy-paste addresses from transaction history
+2. Bookmark our official address: [OFFICIAL ADDRESS]
+3. Verify ALL 44 characters before confirming any transaction
+4. Use our official address book feature
+
+❌ Never trust: recent transaction history, Discord DMs, search results
+---
+```
+
+---
+
+## Drainer Contract Deep Analysis (2024–2026 Patterns)
+
+Understanding exactly how modern Solana drainers work allows wallets to detect them pre-signing.
+
+### Pattern 1: setAuthority Drainer (most common)
+
+```
+Transaction structure:
+  IX 1: setAuthority(tokenAccount, ownerType, newOwner=ATTACKER)
+  
+What happens: ownership of the token account transfers to attacker.
+They can then drain it at any time without further user interaction.
+
+Detection: any instruction with programId=TokenProgram, discriminator=7 (setAuthority),
+           authorityType=1 (AccountOwner), newAuthority≠user's own addresses
+
+Wallet action: HARD BLOCK — never show approval UI for this
+```
+
+### Pattern 2: Delegate Approval Drainer
+
+```
+Transaction structure:
+  IX 1: approve(tokenAccount, delegate=ATTACKER, amount=MAX_UINT64)
+
+What happens: attacker can transfer up to MAX_UINT64 tokens at will.
+User keeps nominal ownership but has granted unlimited spending power.
+
+Detection: discriminator=3 (Approve), amount=18446744073709551615 (max), delegate≠known protocol
+
+Wallet action: DANGER warning — show delegate address + amount prominently
+               Require explicit "I understand" checkbox before signing
+```
+
+### Pattern 3: Versioned Transaction Bundle Drainer (newest, hardest to detect)
+
+```
+Transaction structure (Versioned / Address Lookup Tables):
+  Uses ALTs to hide malicious accounts from the readable instruction list
+  Accounts at ALT indices are not shown in wallet's account list
+  
+What happens: wallet shows "approve 1.0 SOL transfer"
+              ALT account expansion reveals hidden token drainer instruction
+
+Detection: for EVERY versioned transaction, expand ALL address lookup tables
+           and verify every resolved account before displaying approval UI
+
+Wallet action: expand ALTs before showing approval — never trust unresolved account lists
+```
+
+```typescript
+// Expand address lookup tables before transaction analysis
+import {
+  AddressLookupTableAccount,
+  Connection,
+  PublicKey,
+  VersionedTransaction,
+} from "@solana/web3.js";
+
+export async function expandVersionedTransaction(
+  tx: VersionedTransaction,
+  connection: Connection
+): Promise<{ allAccounts: PublicKey[]; altAccounts: PublicKey[] }> {
+  const message = tx.message;
+  const altKeys = message.addressTableLookups.map((l) => l.accountKey);
+
+  // Load all address lookup tables
+  const altAccounts = await Promise.all(
+    altKeys.map((key) =>
+      connection.getAddressLookupTable(key).then((r) => r.value)
+    )
+  );
+
+  // Expand ALL accounts including ALT-resolved ones
+  const allAccounts = message.getAccountKeys({
+    addressLookupTableAccounts: altAccounts.filter(Boolean) as AddressLookupTableAccount[],
+  });
+
+  return {
+    allAccounts: allAccounts.staticAccountKeys.concat(
+      allAccounts.accountKeysFromLookups?.writable ?? [],
+      allAccounts.accountKeysFromLookups?.readonly ?? []
+    ),
+    altAccounts: altAccounts.flatMap((alt) => alt?.state.addresses ?? []),
+  };
+}
+```
+
+---
+
+## Wallet-Specific Threat Model by Architecture
+
+Different wallet architectures have different primary threat vectors.
+
+```
+BROWSER EXTENSION WALLET:
+  Primary threat: A3 (malicious extension injection)
+  Primary threat: A8 (supply chain in extension dependencies)
+  Key mitigation: extension isolation — background script holds keys
+                  content scripts NEVER have key access
+                  message passing with origin validation
+  Secondary: A2 (malicious dApp), A7 (phishing)
+
+MOBILE WALLET (React Native):
+  Primary threat: A6 (physical device theft)
+  Key mitigation: OS Secure Enclave / Keychain mandatory
+                  biometric required for every signing operation
+                  screen blur on background
+  Secondary: A4 (clipboard), A7 (phishing QR codes)
+
+EMBEDDED WALLET (Privy/Magic, no seed phrase):
+  Primary threat: Custodian compromise (beyond user control)
+  Key mitigation: hardware-bound key shards (Privy MPC)
+                  social recovery configured before onboarding
+  Secondary: A7 (phishing the custodian's OAuth flow)
+
+SERVER-SIDE FEE PAYER:
+  Primary threat: A8 (secrets in code/environment)
+  Key mitigation: AWS KMS, HashiCorp Vault, never in .env
+                  separate keypair per environment (dev/staging/prod)
+                  rotated on any suspected compromise
+  Secondary: A3 (compromised CI pipeline)
+```
+
+---
+
+## Wallet Recovery Protocol
+
+When a user loses access to their wallet (lost seed phrase, broken device), coordinate:
+
+```
+LOAD ORDER FOR WALLET RECOVERY:
+  1. THIS FILE — threat classification + triage
+  2. UX skill/wallet-building.md — key derivation + account discovery
+  3. UX skill/wallet-ux.md — recovery flow UX
+
+RECOVERY TRIAGE:
+  "Lost seed phrase, no backup"
+    → Cannot recover software wallet. Load gasless-onboarding.md to create new wallet.
+    → If had Squads multisig, remaining signers can rotate. Load program-upgrade-safety.md.
+    → Prevention: implement social recovery (Squads + 2 of 3 trusted recovery contacts)
+
+  "Device destroyed, seed phrase available"
+    → Standard restore: mnemonic → keypairFromMnemonic → account discovery (gap limit)
+    → Load wallet-building.md → keypairFromMnemonic + discoverAccounts
+    → Re-run security tier evaluation for new device
+
+  "Seed phrase exposed (phishing, screenshot, iCloud sync)"
+    → TREAT AS P0 COMPROMISE — key is considered stolen
+    → Load skill/active-exploit-response.md immediately
+    → Rotate all keys, move all funds BEFORE investigating how it leaked
+    → Create new wallet on clean device using clean derivation path
+
+  "Hardware wallet lost/stolen"
+    → Hardware wallet PIN protects device. Attacker cannot sign without PIN.
+    → Treat as P1 if device was unlocked when lost
+    → Load this file → threat type 4 response (MFA bypass)
+    → Immediately rotate co-signer in any Squads multisig
+```
+
+---
+
+## WALLET_KEY_COMPROMISED Signal
+
+This is the highest-priority cross-skill signal in the entire ecosystem.
+When any wallet key compromise is detected, ALL five skills must be notified.
+
+```typescript
+// Signal definition — shared across all skills
+export interface WalletKeyCompromisedSignal {
+  signal: "WALLET_KEY_COMPROMISED";
+  source_skill: "solana-incident-response-skill";
+  severity: "P0";
+  key_type:
+    | "user_wallet"
+    | "fee_payer"
+    | "upgrade_authority"
+    | "mint_authority"
+    | "treasury";
+  compromised_address: string;
+  confirmed: boolean;       // false = suspected; true = confirmed activity
+  detected_at_utc: string;
+
+  // What to load in each skill:
+  skill_actions: {
+    incident_response: "skill/active-exploit-response.md";
+    observability: "skill/security-observability.md → heightened monitoring";
+    ux: "skill/wallet-ux.md → drain warning UI";
+    depin: "skill/incident-response-integration.md → pause rewards if fee payer";
+    token_launch: "skill/post-launch-monitoring.md → pause distributions";
+  };
+}
+
+// Fire this signal immediately on any confirmed or suspected key compromise
+export function fireWalletKeyCompromised(
+  params: Omit<WalletKeyCompromisedSignal, "signal" | "source_skill" | "severity" | "skill_actions">
+): WalletKeyCompromisedSignal {
+  return {
+    signal: "WALLET_KEY_COMPROMISED",
+    source_skill: "solana-incident-response-skill",
+    severity: "P0",
+    skill_actions: {
+      incident_response: "skill/active-exploit-response.md",
+      observability: "skill/security-observability.md → heightened monitoring",
+      ux: "skill/wallet-ux.md → drain warning UI",
+      depin: "skill/incident-response-integration.md → pause rewards if fee payer",
+      token_launch: "skill/post-launch-monitoring.md → pause distributions",
+    },
+    ...params,
+  };
+}
+```
