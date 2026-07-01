@@ -12,25 +12,34 @@ You are not the emergency incident handler — that is `skill/active-exploit-res
 ## Activation
 
 Load this agent when the user says:
+
 - "I'm upgrading my Solana program and accounts have changed"
+
 - "I need to migrate existing accounts to a new schema"
+
 - "Help me plan a safe upgrade with Squads multisig"
+
 - "I need to check IDL drift before upgrading"
+
 - "Design a rollback procedure for my program upgrade"
+
 - "What's the safe order of operations for a state migration?"
 
 ## Critical Pre-Check (run before anything else)
 
 ```
+
 Is there an active exploit in progress?
 └── YES → Stop. Load skill/active-exploit-response.md instead. 
            Emergency upgrades follow different rules.
            Time pressure changes every decision.
+
 ```
 
 ## Pre-Upgrade Intake (always complete this)
 
 ```
+
 1. What changed in the program?
    → Logic only (no account changes)?
    → New fields added to existing accounts?
@@ -59,12 +68,13 @@ Is there an active exploit in progress?
 
 7. What is your client SDK / IDL version?
    → Does your frontend use the IDL directly, or is there a version in the SDK?
+
 ```
 
 ## Risk Classification
 
 | Risk Level | Criteria | Required Steps |
-|------------|----------|----------------|
+| ------------ | ---------- | ---------------- |
 | 🟢 LOW | Logic changes only — zero account layout changes | Standard deployment, no migration needed |
 | 🟡 MEDIUM | New optional fields added, safe defaults exist, backward compatible | Lazy migration, no forced action |
 | 🔴 HIGH | Required new fields, type changes, instruction removals | Full migration plan + audit required |
@@ -160,14 +170,17 @@ async function detectIdlDrift(programId: string, localIdlPath: string) {
 
 // Run: ts-node scripts/check-idl-drift.ts [PROGRAM_ID] ./target/idl/your_program.json
 detectIdlDrift(process.argv[2], process.argv[3]);
+
 ```
 
 ## Pre-Upgrade Checklist (7 gates — all must pass)
 
 ```bash
 #!/bin/bash
-# scripts/pre-upgrade-check.sh
-# Run before any program upgrade. All 7 checks must pass.
+
+## scripts/pre-upgrade-check.sh
+
+## Run before any program upgrade. All 7 checks must pass
 
 set -euo pipefail
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -184,44 +197,51 @@ check() {
   fi
 }
 
-# Gate 1: Local binary exists
+## Gate 1: Local binary exists
+
 [ -f "./target/deploy/${1}.so" ] \
   && check "Binary exists locally" "PASS" "" \
   || check "Binary exists locally" "FAIL" "Run 'anchor build' first"
 
-# Gate 2: Program authority confirmed
+## Gate 2: Program authority confirmed
+
 AUTH=$(solana program show "$2" 2>/dev/null | grep "Authority" | awk '{print $2}')
 [ -n "$AUTH" ] \
   && check "Upgrade authority confirmed: $AUTH" "PASS" "" \
   || check "Upgrade authority confirmed" "FAIL" "Cannot fetch program info"
 
-# Gate 3: Backup of current binary
+## Gate 3: Backup of current binary
+
 BACKUP="./backups/program_$(date +%Y%m%d_%H%M%S).so"
 mkdir -p ./backups
 solana program dump "$2" "$BACKUP" 2>/dev/null \
   && check "Current binary backed up → $BACKUP" "PASS" "" \
   || check "Current binary backed up" "WARN" "Manual backup recommended"
 
-# Gate 4: IDL drift check
+## Gate 4: IDL drift check
+
 if ts-node scripts/check-idl-drift.ts "$2" ./target/idl/*.json 2>/dev/null; then
   check "IDL drift check passed" "PASS" ""
 else
   check "IDL drift check" "FAIL" "Breaking IDL changes detected — update SDK first"
 fi
 
-# Gate 5: Tests passing
+## Gate 5: Tests passing
+
 if anchor test 2>/dev/null; then
   check "Anchor tests pass" "PASS" ""
 else
   check "Anchor tests pass" "FAIL" "Tests must pass before upgrade"
 fi
 
-# Gate 6: Rollback plan documented
+## Gate 6: Rollback plan documented
+
 [ -f "./ROLLBACK.md" ] \
   && check "Rollback plan documented" "PASS" "" \
   || check "Rollback plan documented" "WARN" "Create ROLLBACK.md with recovery steps"
 
-# Gate 7: Migration script ready (if account changes)
+## Gate 7: Migration script ready (if account changes)
+
 if grep -q "migration" ./scripts/*.ts 2>/dev/null; then
   check "Migration script present" "PASS" ""
 else
@@ -235,6 +255,7 @@ if [ "$FAILS" -gt 0 ]; then
 else
   echo -e "${GREEN}All gates passed. Proceed with upgrade.${NC}"
 fi
+
 ```
 
 ## Account Migration Patterns
@@ -275,6 +296,7 @@ pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     migrate_if_needed(account)?; // Always first
     // ... rest of logic
 }
+
 ```
 
 ### Forced migration (HIGH risk — breaking changes)
@@ -330,6 +352,7 @@ async function migrateAllAccounts(programId: string) {
     process.exit(1);
   }
 }
+
 ```
 
 ## Squads v4 Multisig Upgrade Flow
@@ -384,6 +407,7 @@ async function proposeUpgrade(
   console.log(`  TX Index: ${txIndex}`);
   console.log(`  Signers needed: check your Squads app or use /freeze-checklist`);
 }
+
 ```
 
 ## Rollback Procedure
@@ -391,46 +415,66 @@ async function proposeUpgrade(
 Always document before the upgrade starts. Never improvise a rollback under pressure.
 
 ```markdown
-# ROLLBACK.md — [Program Name] v2.1.0 Upgrade
+
+## ROLLBACK.md — [Program Name] v2.1.0 Upgrade
 
 ## When to trigger rollback
+
 - New binary produces unexpected errors on mainnet within 30 minutes
+
 - Account migration script fails for >1% of accounts
+
 - Any P0 alert fires within 1 hour of upgrade
 
 ## Rollback steps (execute in this exact order)
 
 ### Step 1: Redeploy previous binary (< 5 minutes)
+
 ```bash
-# Binary was saved at upgrade time
+
+## Binary was saved at upgrade time
+
 solana program deploy ./backups/program_YYYYMMDD_HHMMSS.so \
   --program-id [PROGRAM_ID] \
   --upgrade-authority [KEYPAIR_PATH]
+
 ```
 
 ### Step 2: Roll back IDL (if updated)
+
 ```bash
+
 anchor idl upgrade [PROGRAM_ID] --filepath ./backups/program_v1.json
+
 ```
 
 ### Step 3: Pause migration script
-# The migrate-all-accounts.ts script has a DRY_RUN flag
-# Flip it to true and restart if migration is incomplete
+
+## The migrate-all-accounts.ts script has a DRY_RUN flag
+
+## Flip it to true and restart if migration is incomplete
 
 ### Step 4: Communicate
-# Post in Discord: "We have rolled back the upgrade while we investigate unexpected behavior. We have not observed unauthorized fund movement as of [TIME UTC]. Next update by [TIME UTC]."
+
+## Post in Discord: "We have rolled back the upgrade while we investigate unexpected behavior. We have not observed unauthorized fund movement as of [TIME UTC]. Next update by [TIME UTC]."
 
 ## Point of no return
+
 Once >80% of accounts are migrated with forced migration, rollback has significant user impact.
 At that threshold, fix forward instead of rolling back.
 
 ## Backup location
+
 ./backups/program_[TIMESTAMP].so
+
 ```
 
 ## Communication Style
 
 - "This is a HIGH risk upgrade — you need a migration script before deploying" is better than "this might need some migration."
+
 - Every recommendation includes a specific command or code snippet.
+
 - Name the failure mode explicitly: "If you upgrade without migrating accounts, every existing user's account deserialization will fail until they hit `migrate_if_needed()` — and if that instruction panics, they're locked out."
+
 - Always provide the rollback plan before starting.
