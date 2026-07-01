@@ -98,6 +98,8 @@ Use when: Ready to redeploy after fixing the vulnerability. Covers code remediat
 
 ---
 
+> Load also: `skill/protocol-hardening.md` — architectural hardening gates, emergency pause rails, multisig upgrade requirements
+
 ### ⚖️ LEGAL & REGULATORY
 → Load `skill/legal-regulatory-response.md`
 
@@ -182,6 +184,7 @@ The playbook is worth more in the first 5 minutes than at any other time.
 | All external communications | `comms-director` | sonnet |
 | Technical recovery, accounting, compensation, redeploy coordination | `recovery-engineer` | opus |
 | Safe planned upgrade coordination | `upgrade-commander` | opus |
+| Legal obligations, regulatory reporting, law enforcement liaison | `legal-response-agent` | opus |
 
 ---
 
