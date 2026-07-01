@@ -18,11 +18,17 @@ Move first, investigate later — but do not move funds in a way that leaks the 
 ## Production Fund-Movement Rules
 
 1. Prefer pause/freeze over drain if pause fully stops loss.
+
 2. Use Jito bundles or private routing for emergency fund movement when frontrunning or copycat risk exists.
+
 3. Add compute budget and priority fees for non-bundled fallback transactions.
+
 4. Use versioned transactions and Address Lookup Tables when mass-withdrawing from many accounts.
+
 5. Distinguish direct keypair authority, PDA authority via program instruction, and Squads v4 vault authority.
+
 6. Use the correct token program for each account: legacy SPL Token or Token-2022.
+
 7. Log every tx signature and destination before announcing recovery status.
 
 ---
@@ -81,6 +87,7 @@ export async function assessProtocolFunds(vaultAuthority: string) {
   
   return { holdings: active, solBalance };
 }
+
 ```
 
 ---
@@ -90,9 +97,13 @@ export async function assessProtocolFunds(vaultAuthority: string) {
 The fastest move — transfer all token balances to a pre-designated safe wallet.
 
 **CRITICAL**: Pre-designate this safe wallet BEFORE an incident. It should be:
+
 - A Squads v4 treasury vault or hardware wallet controlled by emergency signers
+
 - Not connected to protocol infrastructure or frontend deploy keys
+
 - Known to all core team members and counsel
+
 - Documented in your security runbook
 
 Use the direct-transfer example below only when the vault authority is a keypair you control. If the authority is a PDA, call the protocol's emergency withdrawal instruction. If it is Squads-controlled, build a Squads v4 vault transaction instead of signing locally.
@@ -182,6 +193,7 @@ async function emergencyDrainAllTokens(
   
   return results;
 }
+
 ```
 
 ---
@@ -252,6 +264,7 @@ export async function emergencyWithdrawDLMM(
     }
   }
 }
+
 ```
 
 ---
@@ -316,6 +329,7 @@ export async function emergencyWithdrawWhirlpool(
     }
   }
 }
+
 ```
 
 ---
@@ -366,6 +380,7 @@ export async function emergencyWithdrawRaydiumCLMM(
     }
   }
 }
+
 ```
 
 ---
@@ -418,6 +433,7 @@ async function createEmergencyWithdrawalProposal(
   
   return nextTransactionIndex;
 }
+
 ```
 
 ---
@@ -425,6 +441,7 @@ async function createEmergencyWithdrawalProposal(
 ## Emergency Withdrawal Runbook (Print This)
 
 ```
+
 ⚠️  EMERGENCY WITHDRAWAL RUNBOOK
      Keep this printed and accessible without internet
 
@@ -447,4 +464,5 @@ T+30:  Verify all funds reached safe wallet:
 
 T+45:  All liquidity positions closed
 T+60:  Post initial public notice (load crisis-communication.md)
+
 ```
