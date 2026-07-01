@@ -322,7 +322,6 @@ INSURANCE CLAIM DOCUMENTATION
 
 ---
 
-
 ## Automated Evidence Preservation Script
 
 Run immediately on P0 incident confirmation to meet legal chain-of-custody requirements.
@@ -396,7 +395,6 @@ echo ""
 echo "FILING ENDPOINT: https://bsaefiling1.fincen.treas.gov"
 echo "DEADLINE: $(date -d '+30 days' -u +'%Y-%m-%d') (30 days from today)"
 ```
-
 
 ## User Compensation Frameworks
 
