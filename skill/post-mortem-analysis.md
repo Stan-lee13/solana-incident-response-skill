@@ -8,9 +8,13 @@
 ## The Purpose of a Post-Mortem
 
 A post-mortem is not self-flagellation. It is:
+
 1. A forensic reconstruction of what happened
+
 2. A credibility-building document for your community
+
 3. A technical record that helps the entire ecosystem learn
+
 4. A legal document that may be submitted to insurers and regulators
 
 The best post-mortems in Solana history (Wormhole $320M, Mango Markets, Crema Finance) were thorough, honest, and technically precise. The worst ones destroyed remaining community trust through vagueness.
@@ -75,6 +79,7 @@ function calculateDrainPerTx(tx: any) {
   
   return drains;
 }
+
 ```
 
 ---
@@ -85,37 +90,56 @@ Map what you found to known attack patterns. Be precise — "a vulnerability" is
 
 ### Solana-specific vulnerability taxonomy
 
-*Account Validation Errors*
+#### Account Validation Errors
+
 - Missing owner check: program didn't verify the account is owned by the expected program
+
 - Missing signer check: instruction accepted unsigned accounts
+
 - Missing rent-exempt check: attacker created malicious accounts
+
 - Type confusion: wrong account type accepted without discriminator check
 
-*Arithmetic Errors*
+#### Arithmetic Errors
+
 - Integer overflow: amount calculation exceeded u64 max
+
 - Integer underflow: subtraction wrapped around
+
 - Precision loss: decimal truncation exploited
+
 - Rounding error: fee/reward calculation systematic drain
 
-*Logic Errors*
+#### Logic Errors
+
 - Reentrancy via CPI: program called back into itself before state was updated
+
 - Price oracle manipulation: stale or manipulable price feed
+
 - Flash loan interaction: attacker used flash loan to temporarily satisfy collateral requirements
+
 - Sandwich attack: attacker front-ran or back-ran a privileged transaction
 
-*Access Control Errors*
+#### Access Control Errors
+
 - Privilege escalation: attacker found path to elevated permissions
+
 - Authority confusion: wrong account accepted as authority
+
 - Timestamp manipulation: block time used for time-sensitive logic
 
-*State Errors*
+#### State Errors
+
 - Initialization bypass: uninitialized accounts accepted
+
 - Double-spend: same asset counted twice
+
 - Stale state: cached state not updated before critical check
 
 ### Root cause statement template
 
 ```
+
 ROOT CAUSE: [One precise sentence]
 
 Example: "A missing owner check on the [ACCOUNT_NAME] account allowed an attacker 
@@ -123,6 +147,7 @@ to substitute their own account in place of the protocol's vault, enabling them
 to authorize withdrawals they did not own."
 
 NOT acceptable: "A smart contract vulnerability was exploited."
+
 ```
 
 ---
@@ -168,6 +193,7 @@ async function calculateTotalImpact(
   const totalUSD = transfers.reduce((sum, t) => sum + t.usdValue, 0);
   return { transfers, totalUSD };
 }
+
 ```
 
 ---
@@ -177,7 +203,9 @@ async function calculateTotalImpact(
 ### Structure (follow this exactly)
 
 ```markdown
-# [PROTOCOL NAME] — Post-Mortem Report
+
+## [PROTOCOL NAME] — Post-Mortem Report
+
 **Date of incident:** [DATE UTC]
 **Date of report:** [DATE UTC]
 **Report authors:** [NAMES/HANDLES]
@@ -245,8 +273,11 @@ Be precise. Include when you discovered it, not just when it happened.
 ## Changes We Are Making
 
 [Specific, accountable changes with timelines]
+
 1. [Change 1 — with deadline]
+
 2. [Change 2 — with deadline]
+
 3. [Audit scheduled with X firm by DATE]
 
 ---
@@ -268,6 +299,7 @@ Be precise. Include when you discovered it, not just when it happened.
 ## Final Statement
 
 [Direct, personal statement from founder/team. Own it.]
+
 ```
 
 ---
@@ -275,21 +307,28 @@ Be precise. Include when you discovered it, not just when it happened.
 ## Reconstruction Tools
 
 ```bash
-# Solscan transaction decoder
+
+## Solscan transaction decoder
+
 https://solscan.io/tx/TRANSACTION_SIGNATURE
 
-# Helius transaction enrichment
+## Helius transaction enrichment
+
 curl "https://api.helius.xyz/v0/transactions?api-key=YOUR_KEY" \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"transactions": ["TX_SIGNATURE_1", "TX_SIGNATURE_2"]}'
 
-# Anchor discriminator decoder — identify which instruction was called
-# First 8 bytes of instruction data = discriminator
+## Anchor discriminator decoder — identify which instruction was called
+
+## First 8 bytes of instruction data = discriminator
+
 echo "INSTRUCTION_DATA_HEX" | cut -c1-16
 
-# Cross-reference with your IDL to identify the instruction name
+## Cross-reference with your IDL to identify the instruction name
+
 anchor idl fetch PROGRAM_ID --output json | jq '.instructions[].discriminator'
+
 ```
 
 ---
@@ -299,23 +338,32 @@ anchor idl fetch PROGRAM_ID --output json | jq '.instructions[].discriminator'
 If you need help reconstructing the attack:
 
 ```
+
 Message template for security firms:
 
 "We experienced an exploit on [DATE] affecting [PROTOCOL]. 
 We have preserved all forensic data. We are seeking assistance with:
+
 1. Attack vector confirmation
+
 2. Full technical reconstruction
+
 3. Post-mortem review before publication
 
 Budget available for this engagement: [RANGE]
 
 Relevant data: [attack tx signatures], [program IDs], [git commit at time of exploit]"
+
 ```
 
 Top firms for post-mortem assistance:
+
 - OtterSec: https://osec.io
+
 - Neodyme: https://neodyme.io
+
 - Trail of Bits: https://www.trailofbits.com
+
 - Halborn: https://halborn.com
 
 ---
@@ -323,4 +371,5 @@ Top firms for post-mortem assistance:
 ## Transition Points
 
 - Post-mortem complete, preparing to relaunch → `skill/hardened-redeployment.md`
+
 - Legal obligations from the incident → `skill/legal-regulatory-response.md`
