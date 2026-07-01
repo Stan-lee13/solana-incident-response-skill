@@ -46,19 +46,20 @@ Q5) PRIMARY SIGNAL / INCIDENT TYPE
 [ ] 6 — Account confusion / Anchor constraint bypass / CPI abuse
 [ ] 7 — Frontend, RPC, webhook, or infrastructure compromise
 [ ] 8 — Unknown
+
 ```
 
 ## Severity Classification
 
 | Severity | Definition | Solana examples | Target |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | P0 | Active or imminent material loss, privileged takeover, token integrity failure | Wormhole-style bridge drain, Cashio-style spoofing, hostile upgrade authority | 0–3 min |
 | P1 | Confirmed loss or high-confidence exploit, not actively draining | stopped Crema-style exploit, Mango-style oracle attack after state change | 10 min |
 | P2 | Suspicious anomaly with limited scope or uncertain loss | failed probes, odd oracle prints, unexpected CPI failures | 60 min |
 | P3 | No security impact confirmed | UI bug, stale dashboard, RPC outage | same day |
 
 | Confirmation | Ongoing | Scope | Severity |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Confirmed | Yes | Any | P0 |
 | Confirmed | No | >$1M / token / governance | P0 |
 | Confirmed | No | $10K–$1M | P1 |
@@ -80,6 +81,7 @@ No reachable pause/freeze/upgrade path                    +15
 Authority compromise or governance takeover signal        +15
 CEX/bridge destination observed                           +10
 Public rumor already spreading                             +5
+
 ```
 
 Interpretation: `≥70` P0, `50–69` P1, `30–49` P2, `<30` P2/P3.
@@ -87,7 +89,7 @@ Interpretation: `≥70` P0, `50–69` P1, `30–49` P2, `<30` P2/P3.
 ## Sub-Skills to Load
 
 | Type | Load now | Load after containment |
-|---|---|---|
+| --- | --- | --- |
 | Active drain | `skill/active-exploit-response.md`, `skill/program-freeze-and-pause.md` | `skill/post-mortem-analysis.md` |
 | Mint / token integrity | `skill/program-freeze-and-pause.md`, `skill/legal-regulatory-response.md` | `skill/hardened-redeployment.md` |
 | Oracle manipulation | `skill/anomaly-detection.md`, `skill/active-exploit-response.md` | `skill/liquidity-migration.md` |
@@ -105,6 +107,7 @@ Activate when relevant: `agents/recovery-engineer.md` after containment; `agents
 ## Immediate Actions
 
 P0:
+
 ```text
 [ ] Declare P0 and start UTC incident log.
 [ ] Open war room and assign Incident Commander.
@@ -112,20 +115,27 @@ P0:
 [ ] Execute fastest safe containment: pause, freeze, frontend kill switch, or emergency upgrade.
 [ ] Draft holding statement; do not publish exploit mechanics.
 [ ] Notify exchanges if token integrity, CEX deposits, or attacker outflow exists.
+
 ```
+
 P1:
+
 ```text
 [ ] Start incident log and preserve evidence before remediation.
 [ ] Validate whether attacker path remains repeatable.
 [ ] Prepare pause/freeze action and signer availability.
 [ ] Produce community holding draft within 60 min if users are exposed.
+
 ```
+
 P2/P3:
+
 ```text
 [ ] Keep investigation private.
 [ ] Pull Helius Enhanced Transactions for suspect signatures.
 [ ] Do not post publicly unless user action is required.
 [ ] Reclassify within 60 min or when evidence changes.
+
 ```
 
 ## Required Output Format
@@ -137,12 +147,18 @@ RISK SCORE: [score]/100
 FUND MOVEMENT: [yes/no/unknown]
 CONTROL PATH: [pause / freeze / upgrade / frontend kill switch / none / unknown]
 SUB-SKILLS TO LOAD:
+
   - [skill file]
 AGENTS TO ACTIVATE:
+
   - [agent file]
 IMMEDIATE ACTIONS:
+
   1. [first action]
+
   2. [second action]
+
   3. [third action]
 NEXT DECISION DEADLINE: [UTC time]
+
 ```
