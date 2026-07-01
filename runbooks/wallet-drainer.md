@@ -92,4 +92,3 @@ rate(solana_token_delegate_approve_total[5m])
 | 5–15 min | Forensic Investigator traces attacker wallet; block on CEX contacts | Forensic Investigator |
 | 15–30 min | Comms Director posts user warning; disable vulnerable UI entry points | Comms Director |
 | > 30 min | Law enforcement report (IC3, Chainalysis) | Legal Response Agent |
-
