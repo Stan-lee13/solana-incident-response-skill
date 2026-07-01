@@ -4,6 +4,15 @@
 
 P0 — declare immediately. Every second of delay increases total loss.
 
+## Detection Signals
+
+| Signal | Threshold | Source |
+| --- | --- | --- |
+| `solana_vault_balance` dropping at > 1 SOL/slot | Immediate | Prometheus `SolanaWalletDrainDetected` alert |
+| Repeated withdraw/claim/swap instructions from single wallet | > 3 in 5 min | Helius `getSignaturesForAddress` |
+| Failed probe txs followed by successful drain tx | Any pattern | `anomaly-detection.md` probe-then-drain detector |
+| Unexpected token outflow from protocol vault | > 1% TVL | On-chain balance monitor |
+
 ## Symptoms
 
 - `solana_vault_balance` dropping continuously
@@ -14,6 +23,7 @@ P0 — declare immediately. Every second of delay increases total loss.
 
 - Failed probe transactions followed by successful drain transactions
 
+## First 2 Minutes
 ## First 2 Minutes
 
 1. Confirm: open Helius or Solscan → are funds visibly moving out of protocol vaults?
