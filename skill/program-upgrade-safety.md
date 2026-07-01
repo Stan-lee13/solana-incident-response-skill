@@ -7,13 +7,14 @@ production operation with real financial consequences if it goes wrong. This ski
 covers the complete playbook: pre-upgrade validation, safe state migration, IDL drift
 detection, and rollback procedures.
 
-**No competitor skill covers this. This is the gap.**
+## No competitor skill covers this. This is the gap
 
 ---
 
 ## The Three Failure Modes of Solana Program Upgrades
 
 ### 1. Account Layout Mismatch (Silent Data Corruption)
+
 You add a new field to an account struct. Old accounts have 200 bytes. New struct expects 220 bytes. The program attempts to deserialize old accounts — and either panics or silently reads garbage into the new field.
 
 ```rust
@@ -35,12 +36,15 @@ pub struct UserPosition {
     pub leverage: u8,       // ← New field. Old accounts don't have this byte.
     // Old accounts → garbled data on read
 }
+
 ```
 
 ### 2. IDL Client Drift (Silent Frontend Failure)
+
 Your frontend still uses the old IDL. Users submit transactions that reference old instruction discriminators. The new program rejects them with a cryptic error. Users think your dApp is broken.
 
 ### 3. Authority Takeover (Human Error Under Pressure)
+
 During a rushed upgrade, the wrong keypair is used, or authority is not properly transferred to the new program state. Upgrade authority is now lost or held by the wrong party.
 
 ---
@@ -51,7 +55,8 @@ Run this BEFORE every upgrade. No exceptions.
 
 ```bash
 #!/bin/bash
-# pre-upgrade-check.sh — Run before every program upgrade
+
+## pre-upgrade-check.sh — Run before every program upgrade
 
 PROGRAM_ID="${1:?Usage: $0 <PROGRAM_ID>}"
 CLUSTER="${2:-mainnet-beta}"
@@ -60,7 +65,8 @@ NEW_BINARY="${3:?Must provide new .so file path}"
 echo "=== Pre-Upgrade Validation for $PROGRAM_ID ==="
 echo ""
 
-# 1. Verify upgrade authority
+## 1. Verify upgrade authority
+
 echo "[1/7] Checking upgrade authority..."
 AUTHORITY=$(solana program show $PROGRAM_ID --url $CLUSTER | grep "Upgrade Authority" | awk '{print $NF}')
 echo "  Current upgrade authority: $AUTHORITY"
@@ -68,7 +74,8 @@ echo "  Is this the expected multisig? [y/N]"
 read -r confirm
 [[ "$confirm" != "y" ]] && echo "ABORT: Authority mismatch." && exit 1
 
-# 2. Verify program is actually upgradeable
+## 2. Verify program is actually upgradeable
+
 echo "[2/7] Checking program is upgradeable..."
 IS_UPGRADEABLE=$(solana program show $PROGRAM_ID --url $CLUSTER | grep "Upgradeable")
 if [ -z "$IS_UPGRADEABLE" ]; then
@@ -77,7 +84,8 @@ if [ -z "$IS_UPGRADEABLE" ]; then
 fi
 echo "  ✅ Program is upgradeable"
 
-# 3. Check current deployment size vs new binary
+## 3. Check current deployment size vs new binary
+
 echo "[3/7] Checking binary sizes..."
 CURRENT_SIZE=$(solana program show $PROGRAM_ID --url $CLUSTER | grep "Data Length" | awk '{print $NF}')
 NEW_SIZE=$(wc -c < "$NEW_BINARY")
@@ -90,16 +98,20 @@ if [ "$NEW_SIZE" -gt "$CURRENT_SIZE" ]; then
   echo "  Estimated additional cost: ~$EXTRA_LAMPORTS lamports"
 fi
 
-# 4. Build verification
+## 4. Build verification
+
 echo "[4/7] Verifying reproducible build..."
 anchor verify $PROGRAM_ID --provider.cluster $CLUSTER --program-name my_program 2>&1
 if [ $? -ne 0 ]; then
   echo "  ⚠️  Build verification failed — source may not match deployed binary"
 fi
 
-# 5. Check account count (migration impact)
+## 5. Check account count (migration impact)
+
 echo "[5/7] Checking account count..."
-# Use Helius API to count existing accounts
+
+## Use Helius API to count existing accounts
+
 ACCOUNT_COUNT=$(curl -s "https://mainnet.helius-rpc.com/?api-key=$HELIUS_API_KEY" \
   -X POST -H "Content-Type: application/json" \
   -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getProgramAccounts\",\"params\":[\"$PROGRAM_ID\",{\"encoding\":\"base64\",\"dataSlice\":{\"offset\":0,\"length\":0}}]}" \
@@ -109,14 +121,16 @@ if [ "$ACCOUNT_COUNT" -gt 10000 ]; then
   echo "  ⚠️  Large migration — lazy migration pattern required (accounts migrate on next touch)"
 fi
 
-# 6. Simulate the upgrade
+## 6. Simulate the upgrade
+
 echo "[6/7] Simulating upgrade transaction..."
 solana program deploy $NEW_BINARY \
   --program-id $PROGRAM_ID \
   --url $CLUSTER \
   --simulate 2>&1 | head -20
 
-# 7. Confirm backup of current binary
+## 7. Confirm backup of current binary
+
 echo "[7/7] Current binary backup..."
 solana program dump $PROGRAM_ID /tmp/backup_${PROGRAM_ID}_$(date +%Y%m%d_%H%M%S).so --url $CLUSTER
 echo "  ✅ Current binary backed up to /tmp/"
@@ -127,6 +141,7 @@ echo "Proceed with upgrade? This will affect $ACCOUNT_COUNT live user accounts. 
 read -r final_confirm
 [[ "$final_confirm" != "yes" ]] && echo "Upgrade aborted by operator." && exit 0
 echo "Proceeding..."
+
 ```
 
 ---
@@ -185,6 +200,7 @@ pub fn any_instruction(ctx: Context<AnyCtx>, ...) -> Result<()> {
     // Now safely use position fields — guaranteed to be v2 layout
     Ok(())
 }
+
 ```
 
 ---
@@ -303,6 +319,7 @@ async function main() {
   
   process.exit(1);
 }
+
 ```
 
 ---
@@ -310,6 +327,7 @@ async function main() {
 ## Safe Upgrade Procedure (Step by Step)
 
 ```
+
 PHASE 1 — BEFORE UPGRADE (T-48h to T-1h)
 [ ] Run pre-upgrade-check.sh against the new binary
 [ ] Run check-idl-drift.ts and confirm zero drift (or planned drift)
@@ -341,6 +359,7 @@ PHASE 4 — MONITORING (first 24h)
 [ ] Monitor migration rate (how many accounts have been upgraded via lazy migration)
 [ ] Watch CU usage — should be consistent with pre-upgrade baseline
 [ ] Keep rollback binary and pre-upgrade IDL ready
+
 ```
 
 ---
@@ -350,18 +369,25 @@ PHASE 4 — MONITORING (first 24h)
 If something goes wrong post-upgrade:
 
 ```bash
-# Rollback to previous binary (requires upgrade authority)
+
+## Rollback to previous binary (requires upgrade authority)
+
 solana program deploy /tmp/backup_${PROGRAM_ID}_TIMESTAMP.so \
   --program-id $PROGRAM_ID \
   --url mainnet-beta
 
-# If using Squads multisig:
-# → Emergency proposal: "Rollback to backup binary"
-# → Coordinate all signers — this needs to happen in < 30 minutes
+## If using Squads multisig
 
-# After rollback:
-# → Rollback the on-chain IDL too:
+## → Emergency proposal: "Rollback to backup binary"
+
+## → Coordinate all signers — this needs to happen in < 30 minutes
+
+## After rollback
+
+## → Rollback the on-chain IDL too
+
 anchor idl upgrade $PROGRAM_ID --filepath target/idl/PREVIOUS_VERSION.json --provider.cluster mainnet-beta
+
 ```
 
 **Critical**: Account state written by the new program MAY be incompatible with the old binary if new fields were introduced. Rollback fixes the program logic but cannot undo account state changes. If accounts were migrated, you may need to deploy a "compatibility shim" that handles both old and new layouts rather than a true rollback.
