@@ -11,6 +11,7 @@
 ## Threat Classification
 
 ```
+
 THREAT TYPE 1: TEAM AUTHORITY KEY COMPROMISE
   Private key or seed phrase for upgrade authority, mint authority, treasury,
   or multisig signer is leaked or captured.
@@ -38,6 +39,7 @@ THREAT TYPE 5: SUPPLY CHAIN KEY LEAK
   service with access to signing keys.
   Impact: Silent, long-dwell exfiltration of keys.
   Severity: P0 when discovered — assume key is already used.
+
 ```
 
 ---
@@ -47,11 +49,17 @@ THREAT TYPE 5: SUPPLY CHAIN KEY LEAK
 If you believe your upgrade authority, mint authority, or treasury key is compromised:
 
 ```
+
 PRIORITY ORDER (do all in parallel if team is available):
+
 1. Rotate the compromised key — transfer authority before the attacker can use it
+
 2. Freeze any on-chain capabilities controlled by the key (mint freeze, program pause)
+
 3. Check if the attacker has already used the key (Helius history on the key address)
+
 4. Preserve evidence before rotation destroys it
+
 ```
 
 ### Step 1 — Transfer Upgrade Authority (Emergency)
@@ -59,49 +67,66 @@ PRIORITY ORDER (do all in parallel if team is available):
 If the compromised key holds your program's upgrade authority:
 
 ```bash
-# FASTEST PATH: transfer upgrade authority to a clean Squads multisig
-# Run from a machine that has never touched the compromised key
 
-# Check current upgrade authority
+## FASTEST PATH: transfer upgrade authority to a clean Squads multisig
+
+## Run from a machine that has never touched the compromised key
+
+## Check current upgrade authority
+
 solana program show PROGRAM_ID
 
-# Transfer to a new secure keypair or Squads multisig
+## Transfer to a new secure keypair or Squads multisig
+
 solana program set-upgrade-authority PROGRAM_ID \
   --new-upgrade-authority NEW_AUTHORITY_ADDRESS \
   --keypair /path/to/CURRENT_authority.json \
   -u mainnet-beta
 
-# Verify the transfer
+## Verify the transfer
+
 solana program show PROGRAM_ID | grep -i "upgrade authority"
+
 ```
 
 If the compromised key is a Squads v4 signer:
-```bash
-# Remove the compromised signer from the multisig
-# Do this via Squads UI (app.squads.so) or SDK
-# Requires reaching the remaining threshold of current signers
 
-# Via Squads SDK
+```bash
+
+## Remove the compromised signer from the multisig
+
+## Do this via Squads UI (app.squads.so) or SDK
+
+## Requires reaching the remaining threshold of current signers
+
+## Via Squads SDK
+
 import { Multisig } from "@sqds/multisig";
 // Create a proposal to remove the compromised member
 // Requires M-of-N remaining members to approve
+
 ```
 
 ### Step 2 — Freeze Mint Authority (If Compromised)
 
 ```bash
-# SPL Token — freeze mint authority
+
+## SPL Token — freeze mint authority
+
 spl-token authorize MINT_ADDRESS mint NEW_MINT_AUTHORITY \
   --keypair /path/to/CURRENT_mint_authority.json
 
-# Token-2022
+## Token-2022
+
 spl-token authorize MINT_ADDRESS mint NEW_MINT_AUTHORITY \
   --program-id TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb \
   --keypair /path/to/CURRENT_mint_authority.json
 
-# If mint authority can't be rotated — use freeze authority to halt transfers
+## If mint authority can't be rotated — use freeze authority to halt transfers
+
 spl-token freeze MINT_ADDRESS \
   --keypair /path/to/freeze_authority.json
+
 ```
 
 ### Step 3 — Audit What the Key Has Already Done
@@ -177,6 +202,7 @@ export async function auditCompromisedKey(
     firstSuspiciousTx: suspiciousSigs.length > 0 ? suspiciousSigs[0] : null
   };
 }
+
 ```
 
 ---
@@ -189,6 +215,7 @@ into approving instructions that transfer all their assets.
 ### How Solana Drainers Work (2024–2026 Patterns)
 
 ```
+
 PATTERN 1: Fake NFT Mint / Free Claim
   User connects wallet → approves "mint" transaction
   Real effect: setAuthority (transfers ownership of their token accounts)
@@ -209,6 +236,7 @@ PATTERN 4: Ledger App Confusion
 PATTERN 5: Domain Hijack / DNS Poisoning
   Legitimate domain redirects to look-alike with replaced program IDs
   All transactions route to drainer contract
+
 ```
 
 ### Detecting Drainer Transactions Before Signing
@@ -288,19 +316,29 @@ export function analyzeTransactionForDrainer(
 
   return { risk, flags, recommendation };
 }
+
 ```
 
 ### If Your Frontend Is Serving Drainer Transactions
 
 Immediate steps:
+
 ```
+
 1. Take the frontend offline immediately (Vercel/Netlify → disable deployment)
+
 2. Post: "We are investigating a potential issue with our frontend. Do NOT sign any transactions."
+
 3. Load skill/crisis-communication.md + agents/comms-director.md
+
 4. Audit: when did the malicious deployment go live? (check git blame + deploy logs)
+
 5. Rotate all DNS, hosting credentials, deploy keys
+
 6. Verify program IDs in the malicious build vs your canonical build
+
 7. Alert exchanges with token address to watch for drainer proceeds
+
 ```
 
 ---
@@ -315,7 +353,8 @@ The cost of a false negative (not rotating a compromised key) is everything.
 
 ```bash
 #!/usr/bin/env bash
-# Run this monthly or before any public event
+
+## Run this monthly or before any public event
 
 echo "=== SOLANA KEY HYGIENE AUDIT ==="
 echo ""
@@ -346,6 +385,7 @@ echo "4. Authority inventory check..."
 echo "  Upgrade authority: [run: solana program show YOUR_PROGRAM_ID]"
 echo "  Mint authority:    [run: spl-token display YOUR_MINT]"
 echo "  Treasury wallet:   [verify in Squads UI at app.squads.so]"
+
 ```
 
 ---
@@ -362,6 +402,7 @@ echo "  Treasury wallet:   [verify in Squads UI at app.squads.so]"
 [ ] Document rotation: which key, why, when, new authority address
 [ ] Verify all program authorities are now pointing to the new correct addresses
 [ ] Resume monitoring with fresh Helius webhook alerts on old key address
+
 ```
 
 ---
@@ -369,18 +410,24 @@ echo "  Treasury wallet:   [verify in Squads UI at app.squads.so]"
 ## Cross-Skill Signals
 
 ### Feeds Incident Response
+
 - Any team authority key compromise → immediately escalates to `agents/incident-commander.md`
+
 - Drainer detected on frontend → load `skill/crisis-communication.md` immediately
+
 - Key exposure discovered → load `skill/legal-regulatory-response.md` if user funds at risk
 
 ### Receives from Observability
+
 - `wallet-error-spike` runbook signal → check if spike is drainer-related vs UX bug
+
 - Unexpected program upgrade alert → immediately audit upgrade authority key
 
 ### Feeds UX Skill
-- Drainer pattern taxonomy shared with `solana-ux-skill/skill/wallet-ux.md`
-- Transaction analysis patterns used in pre-sign simulation UX
 
+- Drainer pattern taxonomy shared with `solana-ux-skill/skill/wallet-ux.md`
+
+- Transaction analysis patterns used in pre-sign simulation UX
 
 ---
 
@@ -391,6 +438,7 @@ One of the most dangerous and least-discussed vectors: a malicious npm package i
 ### How It Works
 
 ```
+
 Timeline of a supply chain wallet compromise:
 
 T-30 days: Attacker publishes legitimate-looking npm package or compromises existing one
@@ -400,21 +448,28 @@ T-14 days: Attacker submits PR to your repository adding the dependency
            OR compromises an existing trusted dependency via typosquatting
 
 T-0: Malicious version published — contains exfiltration code:
+
      - Hooks into key generation / decryption functions
+
      - Extracts key material and POSTs to attacker's C2 server
+
      - Obfuscated as legitimate analytics or error reporting traffic
+
 ```
 
 ### Detection
 
 ```bash
 #!/usr/bin/env bash
-# Run this before every production build and in CI
 
-# 1. Audit all dependencies for known vulnerabilities
+## Run this before every production build and in CI
+
+## 1. Audit all dependencies for known vulnerabilities
+
 npm audit --audit-level=moderate
 
-# 2. Check for postinstall scripts (common exfiltration vector)
+## 2. Check for postinstall scripts (common exfiltration vector)
+
 node -e "
 const pkg = require('./node_modules');
 const fs = require('fs');
@@ -432,14 +487,18 @@ console.log('Packages with postinstall scripts:');
 results.forEach(r => console.log(r));
 "
 
-# 3. Verify lockfile integrity (never install without lockfile)
+## 3. Verify lockfile integrity (never install without lockfile)
+
 npm ci  # NOT npm install — ci refuses to modify lockfile
 
-# 4. Pin to exact versions — no ranges in package.json
+## 4. Pin to exact versions — no ranges in package.json
+
 grep -E '"[^"]+": "\^|~' package.json && echo "WARNING: Unpinned dependencies found"
 
-# 5. Monitor package.json for unexpected additions (CI gate)
+## 5. Monitor package.json for unexpected additions (CI gate)
+
 git diff HEAD~1 package.json | grep '"dependencies"' -A 999 | grep '^+'
+
 ```
 
 ### Prevention Architecture
@@ -471,6 +530,7 @@ export const WALLET_CSP_HEADERS = {
 // <script src="https://cdn.example.com/lib.js"
 //   integrity="sha384-HASH"
 //   crossorigin="anonymous"></script>
+
 ```
 
 ---
@@ -487,7 +547,9 @@ import { Helius } from "helius-sdk";
 import { PublicKey } from "@solana/web3.js";
 
 /**
+
  * Set up webhook to detect address poisoning attempts.
+
  * Fires when wallets similar to your known addresses send dust transactions.
  */
 export async function setupAddressPoisonWebhook(
@@ -505,7 +567,9 @@ export async function setupAddressPoisonWebhook(
 }
 
 /**
+
  * Check if an incoming transaction looks like an address poisoning attempt.
+
  * Triggered by webhook — run on every inbound transfer.
  */
 export function isAddressPoisoningAttempt(
@@ -536,6 +600,7 @@ export function isAddressPoisoningAttempt(
 
   return { isPoisoning: false, evidence: "" };
 }
+
 ```
 
 ### User Response Communication
@@ -543,10 +608,15 @@ export function isAddressPoisoningAttempt(
 When address poisoning is detected targeting your users:
 
 ```
+
 Immediate actions:
+
 1. Post warning on Discord, Twitter, Telegram: "Address poisoning attack detected"
+
 2. Add warning banner to your frontend: "⚠️ Address poisoning active — verify every character of addresses"
+
 3. Enable address similarity check in your send flow
+
 4. Report attacker addresses to Helius and Solscan for labeling
 
 User guidance template:
@@ -558,13 +628,18 @@ Attackers are sending tiny amounts from addresses that look like [PROTOCOL NAME]
 If you recently copied an address from your transaction history, STOP.
 
 ✅ How to stay safe:
+
 1. Never copy-paste addresses from transaction history
+
 2. Bookmark our official address: [OFFICIAL ADDRESS]
+
 3. Verify ALL 44 characters before confirming any transaction
+
 4. Use our official address book feature
 
 ❌ Never trust: recent transaction history, Discord DMs, search results
 ---
+
 ```
 
 ---
@@ -576,6 +651,7 @@ Understanding exactly how modern Solana drainers work allows wallets to detect t
 ### Pattern 1: setAuthority Drainer (most common)
 
 ```
+
 Transaction structure:
   IX 1: setAuthority(tokenAccount, ownerType, newOwner=ATTACKER)
   
@@ -586,11 +662,13 @@ Detection: any instruction with programId=TokenProgram, discriminator=7 (setAuth
            authorityType=1 (AccountOwner), newAuthority≠user's own addresses
 
 Wallet action: HARD BLOCK — never show approval UI for this
+
 ```
 
 ### Pattern 2: Delegate Approval Drainer
 
 ```
+
 Transaction structure:
   IX 1: approve(tokenAccount, delegate=ATTACKER, amount=MAX_UINT64)
 
@@ -601,11 +679,13 @@ Detection: discriminator=3 (Approve), amount=18446744073709551615 (max), delegat
 
 Wallet action: DANGER warning — show delegate address + amount prominently
                Require explicit "I understand" checkbox before signing
+
 ```
 
 ### Pattern 3: Versioned Transaction Bundle Drainer (newest, hardest to detect)
 
 ```
+
 Transaction structure (Versioned / Address Lookup Tables):
   Uses ALTs to hide malicious accounts from the readable instruction list
   Accounts at ALT indices are not shown in wallet's account list
@@ -617,6 +697,7 @@ Detection: for EVERY versioned transaction, expand ALL address lookup tables
            and verify every resolved account before displaying approval UI
 
 Wallet action: expand ALTs before showing approval — never trust unresolved account lists
+
 ```
 
 ```typescript
@@ -655,6 +736,7 @@ export async function expandVersionedTransaction(
     altAccounts: altAccounts.flatMap((alt) => alt?.state.addresses ?? []),
   };
 }
+
 ```
 
 ---
@@ -664,6 +746,7 @@ export async function expandVersionedTransaction(
 Different wallet architectures have different primary threat vectors.
 
 ```
+
 BROWSER EXTENSION WALLET:
   Primary threat: A3 (malicious extension injection)
   Primary threat: A8 (supply chain in extension dependencies)
@@ -691,6 +774,7 @@ SERVER-SIDE FEE PAYER:
                   separate keypair per environment (dev/staging/prod)
                   rotated on any suspected compromise
   Secondary: A3 (compromised CI pipeline)
+
 ```
 
 ---
@@ -700,9 +784,13 @@ SERVER-SIDE FEE PAYER:
 When a user loses access to their wallet (lost seed phrase, broken device), coordinate:
 
 ```
+
 LOAD ORDER FOR WALLET RECOVERY:
+
   1. THIS FILE — threat classification + triage
+
   2. UX skill/wallet-building.md — key derivation + account discovery
+
   3. UX skill/wallet-ux.md — recovery flow UX
 
 RECOVERY TRIAGE:
@@ -727,6 +815,7 @@ RECOVERY TRIAGE:
     → Treat as P1 if device was unlocked when lost
     → Load this file → threat type 4 response (MFA bypass)
     → Immediately rotate co-signer in any Squads multisig
+
 ```
 
 ---
@@ -780,4 +869,5 @@ export function fireWalletKeyCompromised(
     ...params,
   };
 }
+
 ```
