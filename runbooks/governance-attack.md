@@ -99,4 +99,3 @@ Defense:
 | 10–30 min | Contact governance platform (Realms/Squads) for emergency veto | Recovery Engineer |
 | 30–60 min | Public governance transparency post; engage token holders | Comms Director |
 | > 1 hour | Legal regulatory notification if treasury is at risk | Legal Response Agent |
-
