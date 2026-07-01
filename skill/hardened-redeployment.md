@@ -10,6 +10,7 @@
 Before writing a single line of code, answer these questions:
 
 ```
+
 Is the original vulnerability fully understood?
 └── NO → Do not redeploy. Return to post-mortem-analysis.md
 
@@ -24,6 +25,7 @@ Has the community been informed of the redeployment timeline?
 
 Do you have an incident response plan in place for the new deployment?
 └── NO → Complete this skill first. You are about to use it again.
+
 ```
 
 ---
@@ -33,6 +35,7 @@ Do you have an incident response plan in place for the new deployment?
 ### Fix the root cause — do not patch around it
 
 Bad remediation:
+
 ```rust
 // BAD: Adding a check on top of a fundamentally broken architecture
 pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
@@ -40,9 +43,11 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     // This check can still be bypassed if vault.owner can be set by attacker
     transfer_tokens(ctx, amount)
 }
+
 ```
 
 Good remediation:
+
 ```rust
 // GOOD: Restructuring account validation using PDAs that cannot be spoofed
 #[derive(Accounts)]
@@ -61,11 +66,13 @@ pub struct Withdraw<'info> {
     
     // ...
 }
+
 ```
 
 ### Mandatory additions after any exploit
 
-*Emergency pause infrastructure*
+#### Emergency pause infrastructure
+
 ```rust
 #[account]
 pub struct ProtocolConfig {
@@ -78,9 +85,11 @@ pub struct ProtocolConfig {
 
 // Add to EVERY instruction:
 require!(!config.paused, ErrorCode::ProtocolPaused);
+
 ```
 
-*Event emission for every state change*
+#### Event emission for every state change
+
 ```rust
 // Every critical action must emit an event for off-chain monitoring
 emit!(Withdrawal {
@@ -96,9 +105,11 @@ emit!(LiquidityAdded {
     amount_b,
     timestamp: Clock::get()?.unix_timestamp,
 });
+
 ```
 
-*Rate limiting on critical instructions*
+#### Rate limiting on critical instructions
+
 ```rust
 #[account]
 pub struct UserState {
@@ -134,6 +145,7 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     
     // ... perform withdrawal
 }
+
 ```
 
 ---
@@ -178,26 +190,34 @@ async function createSecurityMultisig(
   
   return multisigPda;
 }
+
 ```
 
 ### Transfer upgrade authority to multisig
 
 ```bash
-# Transfer program upgrade authority to Squads multisig vault
+
+## Transfer program upgrade authority to Squads multisig vault
+
 solana program set-upgrade-authority YOUR_PROGRAM_ID \
   --new-upgrade-authority SQUADS_VAULT_ADDRESS \
   --upgrade-authority CURRENT_AUTHORITY_KEYPAIR \
   --url mainnet-beta
 
-# Verify the transfer
+## Verify the transfer
+
 solana program show YOUR_PROGRAM_ID --url mainnet-beta
+
 ```
 
 ### Treasury authority → timelocked multisig
 
 All protocol-owned funds should require:
+
 - Multiple signatures (minimum 3 of 5)
+
 - 24-48 hour timelock on treasury movements
+
 - Separate keys for different permission levels
 
 ---
@@ -208,29 +228,42 @@ All protocol-owned funds should require:
 
 Minimum requirements after a security incident:
 
-*1. Full audit of the modified code*
+#### 1. Full audit of the modified code
+
 The auditor must specifically verify that the exploit is fixed — not just review the new code in isolation.
 
 Request this explicitly: "Please verify that the vulnerability described in [POST-MORTEM LINK] cannot be reproduced on this version."
 
 Top firms for redeployment audits:
+
 - Trail of Bits: https://www.trailofbits.com — 4-6 week timeline
+
 - OtterSec: https://osec.io — fast, Solana-specialized
+
 - Neodyme: https://neodyme.io — deep Solana expertise
+
 - Halborn: https://halborn.com — 2-4 week timeline
 
-*2. Competitive audit / second opinion*
+#### 2. Competitive audit / second opinion
+
 After a major exploit, use two firms. The second firm reviews with knowledge of the first incident — they are specifically looking for related vulnerability classes.
 
-*3. Formal verification (for critical math)*
+#### 3. Formal verification (for critical math)
+
 If the exploit involved arithmetic, price calculations, or invariants:
+
 - Certora: https://certora.com — formal verification for program invariants
+
 - Veridise: https://veridise.com — Solana formal verification
 
-*4. Community audit program*
+#### 4. Community audit program
+
 Open a bug bounty before relaunch. Even 30 days with $50K bounty is meaningful.
+
 - Immunefi: https://immunefi.com — largest DeFi bug bounty platform
+
 - Code4rena: https://code4rena.com — competitive audit
+
 - Sherlock: https://sherlock.xyz — audit + coverage
 
 ---
@@ -259,6 +292,7 @@ const response = await fetch("https://api.helius.xyz/v0/webhooks?api-key=YOUR_KE
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(webhookConfig),
 });
+
 ```
 
 ```typescript
@@ -276,6 +310,7 @@ const ALERT_RULES = {
   // Oracle deviation: price moves more than 5% in one slot
   oracleDeviation: { percentagePerSlot: 0.05 },
 };
+
 ```
 
 ---
@@ -285,21 +320,33 @@ const ALERT_RULES = {
 Do not relaunch at full capacity immediately.
 
 ```
+
 Week 1: Restricted relaunch
+
 - Deposit cap: 10% of pre-exploit TVL
+
 - Withdrawal-only mode for first 48 hours
+
 - Maximum position size: 50% of previous limit
+
 - All admin actions require emergency review
 
 Week 2-4: Monitored expansion
+
 - Raise caps 25% per week if no anomalies
+
 - Daily security review
+
 - Bug bounty remains active
 
 Month 2+: Normal operations
+
 - Full capacity restored if no incidents
+
 - Post-incident audit report published
+
 - Community governance vote on final authority structure
+
 ```
 
 ---
@@ -308,20 +355,30 @@ Month 2+: Normal operations
 
 Technical fixes alone do not restore trust. Required communication:
 
-*Before relaunch:*
+### Before relaunch
+
 - Full post-mortem published and acknowledged
+
 - Audit report published (full, not summary)
+
 - Compensation plan executed or clearly communicated
+
 - Relaunch timeline communicated 7+ days in advance
 
-*At relaunch:*
+#### At relaunch
+
 - Live AMA or community call
+
 - Real-time monitoring dashboard public
+
 - Explicit acknowledgment of what is different
 
-*30 days post-relaunch:*
+#### 30 days post-relaunch
+
 - Security update published: "Here is what our monitoring has caught"
+
 - Ongoing bug bounty status
+
 - Roadmap for further hardening
 
 ---
@@ -329,6 +386,7 @@ Technical fixes alone do not restore trust. Required communication:
 ## Redeployment Go/No-Go Checklist
 
 ```
+
 REDEPLOYMENT CHECKLIST
 
 CODE:
@@ -370,4 +428,5 @@ LEGAL:
 [ ] Regulatory notifications complete (if required)
 
 GO / NO-GO DECISION: ____________
+
 ```
