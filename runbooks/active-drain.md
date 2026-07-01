@@ -24,6 +24,7 @@ P0 — declare immediately. Every second of delay increases total loss.
 - Failed probe transactions followed by successful drain transactions
 
 ## First 2 Minutes
+
 ## First 2 Minutes
 
 1. Confirm: open Helius or Solscan → are funds visibly moving out of protocol vaults?
