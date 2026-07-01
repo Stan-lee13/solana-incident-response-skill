@@ -2,8 +2,9 @@
 
 <img src="https://img.shields.io/badge/Solana-Incident_Response_Skill-DC2626?style=for-the-badge&logo=solana&logoColor=white" alt="Solana Incident Response Skill"/>
 
-**For when the worst case is already happening.**
+#### For when the worst case is already happening
 
+<!-- markdownlint-disable-next-line MD036 -->
 *Exploit response · Forensic reconstruction · Program freeze · Liquidity migration · Legal coordination · Crisis communication · Hardened redeployment*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
@@ -21,7 +22,7 @@
 Provides the complete incident response lifecycle for Solana protocols — from the first anomaly signal through containment, forensic reconstruction, fund recovery, legal notification, and hardened redeployment. Built as a multi-agent decision system, not a static checklist.
 
 | Phase | What you get |
-|---|---|
+| --- | --- |
 | **Detection** | Anomaly detection patterns, on-chain drain signatures, oracle manipulation indicators |
 | **Triage** | 15-minute containment protocol, severity classification, escalation ladder |
 | **Containment** | Program freeze/pause patterns, Squads emergency transactions, liquidity migration |
@@ -37,6 +38,7 @@ Provides the complete incident response lifecycle for Solana protocols — from 
 This skill doesn't give you documents — it gives you a coordinated response team.
 
 ```
+
 INCIDENT DETECTED
        │
        ▼
@@ -59,6 +61,7 @@ INCIDENT DETECTED
        │
        └──→  legal-response-agent.md   ← Navigate regulators  ★
              "Map jurisdictions. File FinCEN SAR. Freeze exchanges."
+
 ```
 
 ---
@@ -66,18 +69,25 @@ INCIDENT DETECTED
 ## 5-Minute Drill (Run Before an Incident Happens)
 
 ```bash
+
 # Install
+
 bash <(curl -fsSL https://raw.githubusercontent.com/Stan-lee13/solana-incident-response-skill/main/install.sh)
 
 # Run the readiness drill — validates your team is ready before an incident
-# Load commands/incident-readiness-drill.md in Claude Code and run:
+
+# Load commands/incident-readiness-drill.md in Claude Code and run
+
 /incident-readiness-drill --program <YOUR_PROGRAM_ID> --team-size 3
 
 # Run the triage command on any suspicious transaction
+
 /incident-triage --tx <SUSPICIOUS_TX_SIGNATURE>
 
 # Generate a pre-filled post-mortem template
+
 /post-mortem-template --incident-id IR-2026-001 --severity P1
+
 ```
 
 ---
@@ -85,6 +95,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Stan-lee13/solana-incident-r
 ## Skill Map (13 Files + 6 Agents)
 
 ```
+
 solana-incident-response-skill/
 │
 ├── SKILL.md                           ← Routing table — load this first
@@ -131,6 +142,7 @@ solana-incident-response-skill/
 └── wallet-framework.md                ← Shared wallet security baseline (cross-skill)
 
 ★ = not found in any other incident response submission in this bounty
+
 ```
 
 ---
@@ -157,7 +169,7 @@ Run this before an incident happens. Validates: all multisig signers are reachab
 ## Response Time Targets
 
 | Phase | Target | Enabler |
-|---|---|---|
+| --- | --- | --- |
 | Detection → Triage | < 15 min | anomaly-detection.md + Grafana alerts |
 | Triage → Program freeze | < 30 min | freeze-checklist.md + pre-built Squads tx |
 | Freeze → Community notice | < 2 hours | draft-incident-notice.md + safe language guide |
@@ -169,12 +181,14 @@ Run this before an incident happens. Validates: all multisig signers are reachab
 ## Cross-Skill Integration
 
 ```
+
 solana-incident-response-skill  ←── YOU ARE HERE
         │
         ├── receives ← solana-observability-skill   (WALLET_DRAIN_DETECTED → P0)
         ├── receives ← solana-depin-builder-skill    (DEPIN_ROGUE_NODE → IR triage)
         ├── feeds  → solana-token-launch-skill        (post-incident token communication)
         └── shares   wallet-framework.md with all 4 sibling skills
+
 ```
 
 ---
@@ -183,6 +197,7 @@ solana-incident-response-skill  ←── YOU ARE HERE
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Stan-lee13/solana-incident-response-skill/main/install.sh)
+
 ```
 
 ---
@@ -191,6 +206,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Stan-lee13/solana-incident-r
 
 MIT License · Built for the [Superteam Earn Solana AI Kit Bounty](https://earn.superteam.fun)
 
+<!-- markdownlint-disable-next-line MD036 -->
 *45 files · 378KB · 13 skill docs · 6 agents · 5 commands · 6 runbooks · Multi-agent command system*
 
 </div>
