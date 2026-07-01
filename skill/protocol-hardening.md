@@ -7,8 +7,11 @@ Post-incident hardening playbook for Solana protocols. Covers program upgrade au
 > "The goal is not to make your protocol unhackable. The goal is to make the next attack cost more than the value it can extract."
 
 Every hardening step should be evaluated against three questions:
+
 1. **Does it close the specific vector exploited?** (If not, deprioritize)
+
 2. **Does it introduce new attack surface?** (Some "fixes" make things worse)
+
 3. **Can it be deployed without breaking existing user flows?**
 
 ---
@@ -18,29 +21,40 @@ Every hardening step should be evaluated against three questions:
 ### 1.1 Authority Rotation
 
 ```bash
-# If deploy keypair is compromised or suspected compromised:
 
-# Step 1: Generate new multisig via Squads v4
-# (Do this on an air-gapped machine if possible)
+## If deploy keypair is compromised or suspected compromised
+
+## Step 1: Generate new multisig via Squads v4
+
+## (Do this on an air-gapped machine if possible)
+
 solana-keygen new --outfile new-emergency-keypair.json
 
-# Step 2: Transfer program upgrade authority to new Squads PDA
-# First, identify current upgrade authority
+## Step 2: Transfer program upgrade authority to new Squads PDA
+
+## First, identify current upgrade authority
+
 solana program show <PROGRAM_ID> --url mainnet-beta
 
-# Step 3: Transfer via Squads (requires current upgrade authority signature)
-# If current upgrade authority is compromised, you CANNOT rotate without their signature
-# → This is why pre-deploying to a multisig before launch is critical
+## Step 3: Transfer via Squads (requires current upgrade authority signature)
 
-# If you still control the upgrade authority key:
+## If current upgrade authority is compromised, you CANNOT rotate without their signature
+
+## → This is why pre-deploying to a multisig before launch is critical
+
+## If you still control the upgrade authority key
+
 solana program set-upgrade-authority <PROGRAM_ID> \
   --new-upgrade-authority <NEW_SQUADS_PDA> \
   --url mainnet-beta \
   --keypair old-upgrade-authority.json
 
-# Verify transfer
+## Verify transfer
+
 solana program show <PROGRAM_ID> --url mainnet-beta
-# Expected: "Upgrade authority: <NEW_SQUADS_PDA>"
+
+## Expected: "Upgrade authority: <NEW_SQUADS_PDA>"
+
 ```
 
 ### 1.2 Emergency Pause (If Your Program Supports It)
@@ -89,6 +103,7 @@ pub fn any_instruction(ctx: Context<AnyInstruction>, ...) -> Result<()> {
     );
     // ... rest of instruction
 }
+
 ```
 
 ---
@@ -126,6 +141,7 @@ pub struct WithdrawFunds<'info> {
     pub accepted_mint: Account<'info, Mint>,
     pub protocol_state: Account<'info, ProtocolState>,
 }
+
 ```
 
 ### 2.2 Signer Checks
@@ -148,6 +164,7 @@ pub struct AdminAction<'info> {
     
     pub protocol_state: Account<'info, ProtocolState>,
 }
+
 ```
 
 ### 2.3 PDA Derivation Validation
@@ -182,6 +199,7 @@ pub struct UserWithdraw<'info> {
     
     pub user: Signer<'info>,  // ← user must sign — prevents spoofing
 }
+
 ```
 
 ### 2.4 Account Reuse / Duplicate Account Attack
@@ -202,6 +220,7 @@ pub struct Transfer<'info> {
     )]
     pub to: Account<'info, TokenAccount>,
 }
+
 ```
 
 ---
@@ -230,6 +249,7 @@ pub struct SwapAndBurn<'info> {
     /// CHECK: Jupiter v6 — address constraint validates identity above
     pub jupiter_program: UncheckedAccount<'info>,
 }
+
 ```
 
 ### 3.2 Return Value Validation After CPI
@@ -267,6 +287,7 @@ pub fn swap_fee_to_protocol_token(ctx: Context<SwapAndBurn>) -> Result<()> {
     
     Ok(())
 }
+
 ```
 
 ---
@@ -317,6 +338,7 @@ pub fn compound_interest(principal: u64, rate_bps: u64, periods: u64) -> Result<
     require!(amount <= u64::MAX as u128, ProtocolError::Overflow);
     Ok(amount as u64)
 }
+
 ```
 
 ---
@@ -326,6 +348,7 @@ pub fn compound_interest(principal: u64, rate_bps: u64, periods: u64) -> Result<
 The gold standard for post-exploit authority management:
 
 ```
+
 AUTHORITY HIERARCHY (most secure):
 
   Level 0: Emergency multisig (5-of-9, hardware wallets only)
@@ -350,6 +373,7 @@ AUTHORITY HIERARCHY (most secure):
     → NO program-level authority — cannot upgrade anything
 
 TIMELOCK CONFIGURATION (Squads v4):
+
 ```
 
 ```typescript
@@ -361,6 +385,7 @@ const timeLockConfig = {
   // Emergency multisig: 0 timelock (urgency requires immediate action)
   // For emergency: require 5/9 instead of 3/5 — higher threshold = security
 };
+
 ```
 
 ---
@@ -368,41 +393,61 @@ const timeLockConfig = {
 ## Phase 6: Post-Hardening Verification Checklist
 
 ```bash
-# Run after implementing all hardening changes — before re-opening the protocol
 
-# 1. Anchor build — must succeed with zero warnings
+## Run after implementing all hardening changes — before re-opening the protocol
+
+## 1. Anchor build — must succeed with zero warnings
+
 anchor build 2>&1 | grep -E "warning|error" | wc -l
-# Expected: 0
 
-# 2. Full test suite
+## Expected: 0
+
+## 2. Full test suite
+
 anchor test --skip-deploy
-# Expected: All tests pass
 
-# 3. Account validation audit
-# For each instruction, verify:
+## Expected: All tests pass
+
+## 3. Account validation audit
+
+## For each instruction, verify
+
 grep -n "UncheckedAccount\|AccountInfo" programs/*/src/**/*.rs
-# Every UncheckedAccount must have a CHECK comment AND a constraint
-# Review each one manually
 
-# 4. Missing signer check audit
+## Every UncheckedAccount must have a CHECK comment AND a constraint
+
+## Review each one manually
+
+## 4. Missing signer check audit
+
 grep -n "#\[account" programs/*/src/**/*.rs | grep -v "Signer\|constraint\|seeds\|bump\|mut\|init\|close\|has_one\|token::\|owner =" 
-# Any account holding value WITHOUT constraint = potential vulnerability
 
-# 5. Arithmetic audit
+## Any account holding value WITHOUT constraint = potential vulnerability
+
+## 5. Arithmetic audit
+
 grep -n "\* \|/ \|+ \|- " programs/*/src/**/*.rs | grep -v "checked_\|saturating_\|//\|#\[" | head -30
-# All arithmetic on u64 should use checked_* variants
 
-# 6. CPI program ID validation
+## All arithmetic on u64 should use checked_* variants
+
+## 6. CPI program ID validation
+
 grep -n "invoke\|invoke_signed" programs/*/src/**/*.rs
-# Every CPI must have the program_id validated via constraint or explicit check
 
-# 7. Verify upgrade authority is multisig
+## Every CPI must have the program_id validated via constraint or explicit check
+
+## 7. Verify upgrade authority is multisig
+
 solana program show <PROGRAM_ID> --url mainnet-beta | grep "Upgrade authority"
-# Expected: Squads PDA (not a hot wallet pubkey)
 
-# 8. Integration test: pause mechanism
+## Expected: Squads PDA (not a hot wallet pubkey)
+
+## 8. Integration test: pause mechanism
+
 anchor test --skip-deploy -- --grep "emergency_pause"
-# Expected: pause succeeds; all user-facing instructions fail while paused; unpause succeeds
+
+## Expected: pause succeeds; all user-facing instructions fail while paused; unpause succeeds
+
 ```
 
 ---
@@ -410,6 +455,7 @@ anchor test --skip-deploy -- --grep "emergency_pause"
 ## Phase 7: Security Disclosure and Patch Communication
 
 ```
+
 RESPONSIBLE DISCLOSURE WINDOW (after exploit, before patch publication):
 
   Day 0:    Exploit detected and contained. Legal hold activated.
@@ -418,11 +464,17 @@ RESPONSIBLE DISCLOSURE WINDOW (after exploit, before patch publication):
   Day 3:    Patch deployed to mainnet via Squads multisig
   Day 3:    Protocol unpaused
   Day 3:    FULL post-mortem published (post-mortem-template.md):
+
               - Exact exploit technique
+
               - Root cause (with code snippet showing vulnerability)
+
               - Fix applied (with code snippet showing hardened version)
+
               - Timeline of all actions taken
+
               - Amount affected (exact)
+
               - Reimbursement plan (if applicable)
   Day 3-7:  Coordinated disclosure to security researchers who reported similar issues
   Day 7:    Submit CVE / public disclosure to Solana Foundation security channel
@@ -432,4 +484,5 @@ WHAT NOT TO DO:
   ❌ Downplay the severity — users need accurate information to assess risk
   ❌ Delay disclosure indefinitely "until we're sure" — 7 days maximum
   ❌ Blame the attacker without disclosing your own vulnerability
+
 ```
