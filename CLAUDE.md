@@ -11,9 +11,13 @@ You are operating with the `solana-incident-response-skill` loaded. This skill a
 When this skill is active, you have access to:
 
 - **12 specialized skill files** covering every phase of an incident lifecycle
+
 - **5 agent personas** (incident-commander, forensic-investigator, comms-director, recovery-engineer, upgrade-commander)
+
 - **5 runnable commands + 6 runbooks** (/incident-triage, /freeze-checklist, /draft-incident-notice, /post-mortem-template, /incident-readiness-drill)
+
 - **Always-load safety rules** via `rules/incident-safety.md`
+
 - **Cross-skill handoff protocol** via `ecosystem-signals.md`
 
 ## How to Use This Skill
@@ -21,7 +25,7 @@ When this skill is active, you have access to:
 Load only what you need for the current situation:
 
 | Situation | Load |
-|-----------|------|
+| ----------- | ------ |
 | Active exploit right now | `skill/active-exploit-response.md` + `skill/program-freeze-and-pause.md` + `agents/incident-commander.md` |
 | Suspicious activity, unconfirmed | `skill/anomaly-detection.md` |
 | Need to freeze the program | `skill/program-freeze-and-pause.md` |
@@ -39,7 +43,7 @@ Load only what you need for the current situation:
 ## Stack Defaults (2026)
 
 | Layer | Tool | Override condition |
-|-------|------|--------------------|
+| ------- | ------ | -------------------- |
 | Multisig | Squads v4 | Only if already on different multisig |
 | Monitoring | Helius enhanced transactions + webhooks | QuickNode Yellowstone gRPC for high-volume |
 | Fund migration | Meteora DLMM + Orca Whirlpools | Raydium CLMM as fallback |
@@ -52,25 +56,37 @@ Load only what you need for the current situation:
 This skill bridges 5 domains simultaneously. When a user activates it:
 
 1. **Security engineering** — exploit mechanics, on-chain forensics, vulnerability classes
+
 2. **SRE/DevOps** — monitoring, alerting, detection pipelines (cross-loads observability-skill patterns)
+
 3. **Legal/compliance** — jurisdiction-aware reporting obligations, OFAC, insurance
+
 4. **Crisis communications** — timing, templates, platform-specific guidance
+
 5. **DeFi operations** — multisig coordination, liquidity migration, program freeze mechanics
 
 When the user's question touches multiple domains simultaneously (as active incidents always do), answer across all relevant domains without needing to be prompted.
 
 ## Behavior Rules
 
-**During an active incident:**
+### During an active incident
+
 - Time pressure is real — front-load the most urgent action in every response
+
 - Lead with what to DO, not what happened
+
 - Always give specific commands, not generic advice
+
 - Always give a next step after each completed action
 
-**In all contexts:**
+#### In all contexts
+
 - Never speculate about attack vectors in statements intended for public posting
+
 - Never name individuals as attackers without confirmed on-chain evidence
+
 - Always ask: "Is this for internal use or public posting?" before drafting communications
+
 - Load or reference `rules/incident-safety.md` before drafting public, legal, exchange, white-hat, or recovery communications
 
 ## Token Efficiency
@@ -82,17 +98,23 @@ This skill uses progressive loading. The SKILL.md router is ~154 lines. Each sub
 ## Quick Start
 
 ```
+
 # Incident in progress
+
 "We have an active exploit — program is [ID], funds are draining, we have Squads 3-of-5"
 
 # Pre-incident setup  
+
 "Run /incident-readiness-drill for my program [ID] and set up anomaly detection monitoring"
 
 # Post-incident
+
 "Help me write the full post-mortem — attack was on [DATE]"
 
 # Planned upgrade
+
 "I'm upgrading my Solana program — new fields added to UserVault struct"
+
 ```
 
 ## Repository
@@ -100,4 +122,3 @@ This skill uses progressive loading. The SKILL.md router is ~154 lines. Each sub
 https://github.com/Stan-lee13/solana-incident-response-skill
 
 Built for the Superteam Earn Solana AI Kit bounty.
-
