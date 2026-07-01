@@ -25,7 +25,7 @@ P0 — declare immediately. Every second of delay increases total loss.
 
 ## First 2 Minutes
 
-## First 2 Minutes
+## First 2 Minutes (Response)
 
 1. Confirm: open Helius or Solscan → are funds visibly moving out of protocol vaults?
 
