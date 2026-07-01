@@ -101,7 +101,7 @@ Use when: Ready to redeploy after fixing the vulnerability. Covers code remediat
 > Load also: `skill/protocol-hardening.md` — architectural hardening gates, emergency pause rails, multisig upgrade requirements
 
 ### ⚖️ LEGAL & REGULATORY
-→ Load `skill/legal-regulatory-response.md`
+→ Load `skill/legal-regulatory-response.md` + `agents/legal-response-agent.md`
 
 Use when: Need to understand reporting obligations, law enforcement coordination, insurance claims, OFAC considerations, or user compensation frameworks.
 
