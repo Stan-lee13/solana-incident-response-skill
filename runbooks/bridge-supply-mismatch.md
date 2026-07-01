@@ -95,4 +95,3 @@ rate(solana_bridge_transaction_total{status="anomaly"}[5m])
 | 5–15 min | Freeze bridge inflow; contact Wormhole/LayerZero team | Recovery Engineer |
 | 15–30 min | Law enforcement notification if funds actively moving | Legal Response Agent |
 | > 1 hour | Public disclosure via crisis-communication.md playbook | Comms Director |
-
