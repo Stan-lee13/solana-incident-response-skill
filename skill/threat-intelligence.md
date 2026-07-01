@@ -12,6 +12,7 @@ into an early-warning system that fires 30–120 minutes before most exploits su
 ## The Attacker Lifecycle — Where You Can Intercept
 
 ```
+
 PHASE 1: RECONNAISSANCE (days/weeks before exploit)
   ├── Reads your IDL, program logs, Discord, GitHub issues
   ├── Deploys test contract on devnet with same logic
@@ -35,6 +36,7 @@ PHASE 4: EXPLOIT (seconds)
   DETECTION: Too late for prevention; containment begins
 
 INTERCEPTION WINDOW: Phases 2 and 3 give you actionable lead time.
+
 ```
 
 ---
@@ -141,6 +143,7 @@ export async function detectProbePatterns(
 // signals.filter(s => s.severity === "HIGH").forEach(s => {
 //   alertTeam(`Probe detected: ${s.suspectWallet} — ${s.failedCount} failures → ${s.successCount} successes`);
 // });
+
 ```
 
 ---
@@ -232,6 +235,7 @@ export function checkTransactionWatchlist(
 
   return { hit: matches.length > 0, matches, labels };
 }
+
 ```
 
 ---
@@ -326,6 +330,7 @@ export async function assessWalletFundingRisk(
     riskScore: Math.min(riskScore, 100)
   };
 }
+
 ```
 
 ---
@@ -384,6 +389,7 @@ export async function monitorOracleDeviation(
     timestamp: Math.floor(Date.now() / 1000)
   };
 }
+
 ```
 
 ---
@@ -394,10 +400,13 @@ High-value exploits on Solana are often executed as Jito bundles for atomicity.
 Monitoring Jito tip accounts for unusual activity gives 2–30 second lead time.
 
 ```bash
-# Monitor Jito tip account activity via Helius webhook
-# Tip accounts: https://jito-labs.gitbook.io/mev/searcher-resources/tip-payment
 
-# Jito tip accounts (current as of 2026)
+## Monitor Jito tip account activity via Helius webhook
+
+## Tip accounts: https://jito-labs.gitbook.io/mev/searcher-resources/tip-payment
+
+## Jito tip accounts (current as of 2026)
+
 JITO_TIP_ACCOUNTS=(
   "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5"
   "HFqU5x63VTqvB8eMTWekmFBMzfh5aekzqd45MQ6YkBRj"
@@ -409,7 +418,8 @@ JITO_TIP_ACCOUNTS=(
   "3AVi9Tg9Uo68tJfuvoKvqKNWKkC5wPdSSdeBnizKZ6jT"
 )
 
-# Register Helius webhook on Jito tip accounts
+## Register Helius webhook on Jito tip accounts
+
 curl -X POST "https://api.helius.xyz/v0/webhooks?api-key=$HELIUS_API_KEY" \
   -H "Content-Type: application/json" \
   -d "{
@@ -418,6 +428,7 @@ curl -X POST "https://api.helius.xyz/v0/webhooks?api-key=$HELIUS_API_KEY" \
     \"accountAddresses\": $(echo "${JITO_TIP_ACCOUNTS[@]}" | tr ' ' '\n' | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().split()))'),
     \"webhookType\": \"enhanced\"
   }"
+
 ```
 
 ---
@@ -489,6 +500,7 @@ export async function monitorGovernanceAccumulation(
 
   return alerts.sort((a, b) => b.percentOfSupply - a.percentOfSupply);
 }
+
 ```
 
 ---
@@ -566,6 +578,7 @@ export async function runThreatAssessment(
     nextReviewIn
   };
 }
+
 ```
 
 ---
@@ -573,13 +586,19 @@ export async function runThreatAssessment(
 ## Cross-Skill Integration
 
 ### Receives from Observability
+
 Load this skill immediately when `Solana-observabilty-skill` emits:
+
 - `OBS_ANOMALY_TO_INCIDENT` signal (see `ecosystem-signals.md`)
+
 - Failed transaction burst above SLO threshold
+
 - Unexpected program authority change alert
 
 ### Feeds to Incident Commander
+
 When any Signal 1–6 reaches HIGH or CRITICAL:
+
 ```text
 THREAT INTEL ALERT → INCIDENT COMMANDER
 Type: [probe_detected / watchlist_hit / oracle_deviation / governance_accumulation]
@@ -588,14 +607,19 @@ Suspect: [wallet_address]
 Program: [program_id]
 Recommended: [load anomaly-detection / brief IC / preemptive pause review]
 Time: [UTC timestamp]
+
 ```
 
 ### Feeds to Observability
+
 After adding a new suspect wallet to the watchlist, register it as a monitored
 address in your Helius webhook configuration:
+
 ```
+
 POST to Observability skill: add_monitored_wallet([suspect_address])
 Helius webhook auto-registers for enhanced transaction monitoring.
+
 ```
 
 ---
@@ -604,7 +628,7 @@ Helius webhook auto-registers for enhanced transaction monitoring.
 
 Keep your protocol-specific watchlist current:
 
-```typescript
+```json
 // watchlist.json — commit to your private security repo, not public
 {
   "protocolWatchlist": [
@@ -618,6 +642,7 @@ Keep your protocol-specific watchlist current:
   "lastUpdated": "2026-06-28T00:00:00Z",
   "version": "1"
 }
+
 ```
 
 Update after every incident. Add suspect wallets discovered during forensics.
@@ -628,7 +653,7 @@ Cross-reference with: https://solanafm.com, https://solscan.io, https://app.bloc
 ## Response Thresholds
 
 | Signal combination | Immediate action |
-|---|---|
+| --- | --- |
 | High-severity probe + fresh wallet | Alert IC, load anomaly-detection |
 | Watchlist wallet + your program | IMMEDIATE P1 declaration |
 | Oracle deviation >5% + probe pattern | Pre-emptive IC brief + freeze review |
