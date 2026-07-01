@@ -13,7 +13,7 @@
 A production Solana wallet is not a single problem. It is the intersection of five distinct engineering domains:
 
 | Domain | Primary Skill | Key Files |
-|--------|--------------|-----------|
+| -------- | -------------- | ----------- |
 | Key Management & Security Architecture | UX | `skill/wallet-engineering.md`, `skill/wallet-building.md` |
 | Transaction Security & Threat Response | Incident Response | `skill/wallet-security.md`, `skill/threat-intelligence.md` |
 | Reliability & Performance Monitoring | Observability | `skill/wallet-observability.md`, `skill/security-observability.md` |
@@ -27,6 +27,7 @@ No single skill covers every wallet requirement. But together, with clear handof
 ## Wallet Development Lifecycle → Skill Routing
 
 ```
+
 PHASE 1: ARCHITECTURE DESIGN
   Question: What type of wallet am I building?
   → Load: skill/wallet-engineering.md → Wallet Architecture Decision Tree
@@ -68,6 +69,7 @@ PHASE 8: INCIDENT RESPONSE WIRING
   → Load: skill/wallet-security.md → WALLET_KEY_COMPROMISED signal
   → Load: skill/active-exploit-response.md → Key compromise response
   → ecosystem-signals.md in ALL skills → cross-skill signal routing
+
 ```
 
 ---
@@ -77,7 +79,7 @@ PHASE 8: INCIDENT RESPONSE WIRING
 Every production wallet must address all eight. These map directly to the threat model in `wallet-engineering.md`.
 
 | Requirement | Skill | File |
-|-------------|-------|------|
+| ------------- | ------- | ------ |
 | RPC spoofing prevention | Observability | `skill/infrastructure-monitoring.md` |
 | Malicious dApp / drainer blocking | UX + IR | `wallet-engineering.md` → intent verification |
 | Extension isolation | UX | `skill/wallet-building.md` → Browser Extension section |
@@ -157,6 +159,7 @@ export type WALLET_ADDRESS_POISONING_DETECTED = {
   // Receive: IR skill, UX skill (add warning banner)
   // Response: wallet-security.md → Address Poisoning Response
 };
+
 ```
 
 ---
@@ -165,52 +168,86 @@ export type WALLET_ADDRESS_POISONING_DETECTED = {
 
 Before launching any wallet to production, this checklist must pass. Every item references a specific skill file.
 
-**Key Management (wallet-building.md + wallet-engineering.md)**
+### Key Management (wallet-building.md + wallet-engineering.md)
+
 - [ ] BIP39 mnemonic test vectors validate correctly (test with known mnemonics)
+
 - [ ] HD derivation produces expected addresses (compare with Phantom/Backpack for same mnemonic)
+
 - [ ] AES-256-GCM encrypt/decrypt round-trip test passes
+
 - [ ] PBKDF2 600K iterations (or Argon2id) timing test: > 200ms on target device
+
 - [ ] Vault migration functions tested: v1→v3, v2→v3
+
 - [ ] Gap limit account discovery finds accounts at index 0, 5, 11 (non-contiguous)
+
 - [ ] Seed phrase backup verification rejects wrong words
+
 - [ ] Seed phrase backup verification accepts correct words
 
-**Transaction Security (wallet-engineering.md)**
+#### Transaction Security (wallet-engineering.md)
+
 - [ ] `analyzeTransactionIntent` blocks setAuthority(AccountOwner, attacker) transactions
+
 - [ ] `analyzeTransactionIntent` warns on Approve with MAX_UINT64 delegate
+
 - [ ] `analyzeTransactionIntent` warns on unknown program IDs
+
 - [ ] Address poisoning test: first+last 6 char match detected and warned
+
 - [ ] Clipboard integrity: modified clipboard triggers warning
+
 - [ ] Versioned transaction ALT expansion: hidden accounts are shown
+
 - [ ] Transaction simulation runs before signing UI renders
 
-**UX States (wallet-ux.md + transaction-feedback-ux.md)**
+#### UX States (wallet-ux.md + transaction-feedback-ux.md)
+
 - [ ] All 8 connection states render correctly (undetected → wrong-network)
+
 - [ ] All 12 transaction states render correctly (idle → failed → recovery)
+
 - [ ] Error messages are human-readable (not raw error codes)
+
 - [ ] Retry logic tested: blockhash expiry → get new blockhash → retry works
 
-**Mobile (mwa-ux.md)**
+#### Mobile (mwa-ux.md)
+
 - [ ] MWA connection works on Android with Phantom wallet
+
 - [ ] App backgrounding blurs sensitive content (key display, balance)
+
 - [ ] Biometric required for signing on device with biometric support
 
-**Performance (performance-optimization.md)**
+#### Performance (performance-optimization.md)
+
 - [ ] Initial bundle size < 150KB gzipped
+
 - [ ] Wallet adapter loaded lazily (not at startup)
+
 - [ ] Balance fetch batched (single `getMultipleAccountsInfo` call)
+
 - [ ] Connection success rate SLO alert configured (target: 98.5%)
 
-**Monitoring (wallet-observability.md)**
+#### Monitoring (wallet-observability.md)
+
 - [ ] Wallet connect success rate metric tracked
+
 - [ ] Signing latency histogram tracked
+
 - [ ] Fee payer runway alert fires at < 48h
+
 - [ ] Drainer block counter tracked by pattern type
+
 - [ ] No wallet addresses appear in any log, metric label, or analytics event
 
-**Incident Response Wiring (wallet-security.md)**
+#### Incident Response Wiring (wallet-security.md)
+
 - [ ] `WALLET_KEY_COMPROMISED` signal handler tested
+
 - [ ] `WALLET_DRAINER_ACTIVE` signal fires when intent analyzer blocks drainer
+
 - [ ] Fee payer compromise scenario: runbook is known, rotation tested on devnet
 
 ---
@@ -218,6 +255,7 @@ Before launching any wallet to production, this checklist must pass. Every item 
 ## The Wallet Engineering Stack (Complete)
 
 ```
+
 APPLICATION LAYER (what users see)
 ├── Connection state machine         → skill/wallet-ux.md
 ├── Transaction feedback UX          → skill/transaction-feedback-ux.md
@@ -250,4 +288,5 @@ PHYSICAL LAYER (DePIN wallets)
 ├── Device keypair model             → depin/skill/node-registry.md
 ├── Session key signing              → skill/wallet-engineering.md
 └── Hardware integration             → depin/skill/hardware-integration.md
+
 ```
