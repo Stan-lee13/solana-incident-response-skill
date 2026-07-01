@@ -7,25 +7,38 @@ Google SRE-style post-mortem template adapted for Solana protocols and on-chain 
 ## Required Inputs
 
 ```text
+
 1) Protocol name and affected program IDs.
+
 2) Incident start/end: UTC time + slot range.
+
 3) Impacted assets: SOL / SPL / Token-2022 / LP / collateral / governance.
+
 4) Confirmed loss or at-risk amount, with evidence source.
+
 5) Root cause classification.
+
 6) Containment actions and tx signatures.
+
 7) Remediation status: patch, pause, migration, redeploy, compensation.
+
 8) Disclosure constraints: legal, exchange, law enforcement, white-hat negotiation.
+
 ```
+
 Unknown items must be labeled `pending verification`.
 
 ## Title Block
 
 ```text
-# [PROTOCOL] Incident Post-Mortem — [DATE]
+
+## [PROTOCOL] Incident Post-Mortem — [DATE]
+
 Status: [draft/final] | Published: [DATE UTC] | Severity: [P0/P1/P2/P3]
 Incident window: [START UTC / SLOT] → [END UTC / SLOT]
 Affected components: [PROGRAM_ID / POOL / MINT / FRONTEND]
 Prepared by: [Incident Commander / Forensics / Engineering / Comms]
+
 ```
 
 ## 1. Executive Summary
@@ -37,6 +50,7 @@ On [DATE UTC], [PROTOCOL] detected [incident type] affecting [component]. The in
 Confirmed impact: [impact].
 Actions taken: [pause/freeze/upgrade/frontend disabled/exchange notification].
 Current status: [paused / redeployed / compensation pending / restored].
+
 ```
 
 Do not include copycat-enabling exploit mechanics unless the fix is deployed and reviewed.
@@ -46,7 +60,7 @@ Do not include copycat-enabling exploit mechanics unless the fix is deployed and
 User impact: funds lost, funds inaccessible, incorrect balances, forced liquidations, trading disruption, or no direct user impact.
 
 | Asset / pool / vault | Mint / account | Pre | Post | Impact |
-|---|---|---:|---:|---:|
+| --- | --- | ---: | ---: | ---: |
 | [name] | [address] | [amount] | [amount] | [loss / locked / none] |
 
 Protocol/market impact: affected program IDs, instructions, PDAs/vaults, paused components, unaffected components, DEX liquidity, CEX status, oracle/liquidation impact, integrator impact.
@@ -56,7 +70,7 @@ Protocol/market impact: affected program IDs, instructions, PDAs/vaults, paused 
 Use UTC and Solana slots. Every claim should map to evidence.
 
 | Time UTC | Slot | Event | Evidence |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | [time] | [slot] | first known probe transaction | [signature] |
 | [time] | [slot] | first successful malicious transaction | [signature] |
 | [time] | [slot] | alert fired / user report received | [alert ID] |
@@ -75,7 +89,7 @@ Explain source and latency: Helius webhook, Helius Enhanced Transactions, QuickN
 ## 5. Root Cause
 
 | Classification | Use when | Solana examples |
-|---|---|---|
+| --- | --- | --- |
 | Oracle manipulation | price inputs enabled extraction | Mango-style market manipulation |
 | Account confusion | unauthorized accounts passed validation | Cashio-style spoofing |
 | CPI / reentrancy-equivalent | unsafe CPI order or state-after-CPI bug | CPI side-effect exploit |
@@ -90,6 +104,7 @@ Primary root cause: [classification]
 Affected instruction/account path: [high level for public version]
 Why existing controls failed: [explanation]
 Why tests/audits/monitoring missed it: [explanation]
+
 ```
 
 ## 6. Contributing Factors
@@ -99,7 +114,7 @@ Examples: pause authority not separated from upgrade authority; Squads v4 quorum
 ## 7. Response and Containment
 
 | Action | Time UTC | Owner | Tx / evidence | Result |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | declared incident | [time] | Incident Commander | [log] | [result] |
 | preserved evidence | [time] | Forensics | [artifact] | [result] |
 | paused program | [time] | Engineering / Squads | [tx] | [result] |
@@ -123,6 +138,7 @@ Unrecovered funds: [amount / pending]
 Compensation model: [treasury / insurance / Merkle distribution / governance vote / none]
 Claim eligibility slot: [slot]
 Claim process status: [planned / live / complete]
+
 ```
 
 If white-hat negotiation occurred, summarize returned funds and bounty without promising legal conclusions.
@@ -130,13 +146,15 @@ If white-hat negotiation occurred, summarize returned funds and bounty without p
 ## 10. Disclosure Obligations
 
 - [ ] exchange notifications completed; law enforcement/regulator notifications assessed
+
 - [ ] OFAC / sanctions screening completed for returned or traced funds
+
 - [ ] insurer, investor, partner, and user notice requirements reviewed by counsel
 
 ## 11. Action Items
 
 | Priority | Action item | Owner | Deadline | Verification |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | P0 | [must complete before unpause] | [role] | [date] | [test/audit/tx] |
 | P1 | [complete before redeploy] | [role] | [date] | [evidence] |
 | P2 | [process improvement] | [role] | [date] | [runbook/update] |
