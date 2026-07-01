@@ -11,6 +11,7 @@ The most important thing to know upfront: *Solana programs do not have a univers
 Pause capability must be built in. This skill covers both scenarios:
 
 1. You have a pause/emergency mechanism built in — how to invoke it
+
 2. You do not — what options still exist and what you should do next time
 
 ---
@@ -43,15 +44,21 @@ pub fn emergency_pause(ctx: Context<EmergencyPause>) -> Result<()> {
     });
     Ok(())
 }
+
 ```
 
 To invoke this from CLI:
+
 ```bash
-# Using Anchor CLI
+
+## Using Anchor CLI
+
 anchor run pause -- --provider.cluster mainnet-beta
 
-# Or with a custom script
+## Or with a custom script
+
 npx ts-node scripts/emergency-pause.ts --cluster mainnet-beta --keypair ~/.config/solana/pause-authority.json
+
 ```
 
 ### Squads v4 — Multisig emergency proposal
@@ -108,6 +115,7 @@ const { signature: executeSignature } = await Multisig.rpc.vaultTransactionExecu
   transactionIndex: BigInt(currentIndex + 1),
   member: EXECUTOR_KEYPAIR,
 });
+
 ```
 
 ---
@@ -121,20 +129,27 @@ If your program has no pause mechanism, you have fewer options but still have so
 If you hold upgrade authority (or it is a multisig you can quickly coordinate):
 
 ```bash
-# Step 1: Build a version of your program that rejects all instructions
-# Add this at the top of every instruction handler:
-# require!(!config.paused, ErrorCode::ProtocolPaused);
-# Then set paused = true in the account data on initialization of this emergency build
 
-# Step 2: Build the emergency binary
+## Step 1: Build a version of your program that rejects all instructions
+
+## Add this at the top of every instruction handler
+
+## require!(!config.paused, ErrorCode::ProtocolPaused);
+
+## Then set paused = true in the account data on initialization of this emergency build
+
+## Step 2: Build the emergency binary
+
 anchor build -- --features emergency_pause
 
-# Step 3: Deploy upgrade
+## Step 3: Deploy upgrade
+
 solana program deploy \
   --program-id YOUR_PROGRAM_ID \
   --upgrade-authority YOUR_AUTHORITY_KEYPAIR \
   target/deploy/your_program.so \
   --url mainnet-beta
+
 ```
 
 *WARNING:* Upgrading a program during an exploit is a serious action. Coordinate with legal first if time permits. In fast-moving exploits, teams have sometimes had to make this call in under 5 minutes.
@@ -144,11 +159,14 @@ solana program deploy \
 This makes the program permanently non-functional. Only for total loss situations.
 
 ```bash
-# Only do this if the program is beyond saving and you want to prevent further exploitation
+
+## Only do this if the program is beyond saving and you want to prevent further exploitation
+
 solana program close YOUR_PROGRAM_ID \
   --upgrade-authority YOUR_AUTHORITY_KEYPAIR \
   --bypass-warning \
   --url mainnet-beta
+
 ```
 
 ---
@@ -181,6 +199,7 @@ const sig = await sendAndConfirmTransaction(
 );
 
 console.log("Mint authority revoked:", sig);
+
 ```
 
 ```typescript
@@ -193,6 +212,7 @@ const transferAuthorityTx = new Transaction().add(
     COLD_MULTISIG_ADDRESS  // transfer to safe multisig
   )
 );
+
 ```
 
 ---
@@ -219,6 +239,7 @@ const sig = await sendAndConfirmTransaction(
   [FREEZE_AUTHORITY_KEYPAIR],
   { commitment: "confirmed" }
 );
+
 ```
 
 Note: Freeze authority must have been set at mint creation. If you don't have it, you cannot freeze accounts.
@@ -230,17 +251,21 @@ Note: Freeze authority must have been set at mint creation. If you don't have it
 After containment, consider permanently revoking upgrade authority or transferring to a timelock:
 
 ```bash
-# Option 1: Transfer to Squads multisig (recommended)
+
+## Option 1: Transfer to Squads multisig (recommended)
+
 solana program set-upgrade-authority YOUR_PROGRAM_ID \
   --new-upgrade-authority YOUR_SQUADS_MULTISIG_VAULT \
   --upgrade-authority CURRENT_AUTHORITY_KEYPAIR \
   --url mainnet-beta
 
-# Option 2: Make program immutable (cannot be upgraded ever again)
+## Option 2: Make program immutable (cannot be upgraded ever again)
+
 solana program set-upgrade-authority YOUR_PROGRAM_ID \
   --final \
   --upgrade-authority CURRENT_AUTHORITY_KEYPAIR \
   --url mainnet-beta
+
 ```
 
 ---
@@ -248,6 +273,7 @@ solana program set-upgrade-authority YOUR_PROGRAM_ID \
 ## Emergency Freeze Checklist
 
 ```
+
 PROGRAM FREEZE CHECKLIST
 
 [ ] All multisig signers notified and reachable
@@ -268,6 +294,7 @@ POST-FREEZE:
 [ ] Recording freeze transaction signature for post-mortem
 [ ] Moving to liquidity-migration.md to protect remaining funds
 [ ] Drafting initial public communication (skill/crisis-communication.md)
+
 ```
 
 ---
@@ -277,6 +304,7 @@ POST-FREEZE:
 If your upgrade authority is held by a third party (e.g., you used a multisig service):
 
 - Squads Protocol support: https://discord.gg/squads — #emergency channel
+
 - If upgrade authority is on a hardware wallet that is physically inaccessible: contact OtterSec or Neodyme — they have handled this
 
 ---
@@ -286,6 +314,9 @@ If your upgrade authority is held by a third party (e.g., you used a multisig se
 If you have lost upgrade authority, the attacker controls it, or your multisig cannot reach threshold:
 
 1. Immediately move to `skill/liquidity-migration.md` — protect what can still be protected
+
 2. Contact Solana Foundation security: security@solana.org — in extreme cases they have coordinated with validators
+
 3. Contact exchange security teams to flag the attacker wallet
+
 4. Move to `skill/crisis-communication.md` — transparency is now your only tool
