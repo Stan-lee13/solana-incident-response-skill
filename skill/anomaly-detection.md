@@ -10,12 +10,16 @@ The goal is to detect the probe and the dry runs — not just the exploit itself
 ## The Attacker's Signature Before the Attack
 
 Attackers do not succeed on the first try. They:
+
 1. Deploy a test contract on devnet or localnet
+
 2. Probe your mainnet program with failing transactions (testing account validation)
+
 3. Run a small-scale exploit first (confirm it works, estimate gas)
+
 4. Scale up once confirmed
 
-**You should detect them at step 2 — not step 4.**
+### You should detect them at step 2 — not step 4
 
 ---
 
@@ -59,6 +63,7 @@ async function detectVolumeAnomaly(programId: string): Promise<{
   if (multiplier > 5)  return { anomaly: true, severity: "MEDIUM", currentRate, baselineRate, multiplier };
   return { anomaly: false, severity: "NORMAL", currentRate, baselineRate, multiplier };
 }
+
 ```
 
 ---
@@ -113,6 +118,7 @@ async function detectProbeTransactions(programId: string): Promise<{
   
   return { suspectedProbers: probers };
 }
+
 ```
 
 ---
@@ -168,6 +174,7 @@ async function detectFlashLoanAttacks(programId: string): Promise<Array<{
   
   return suspicious;
 }
+
 ```
 
 ---
@@ -228,11 +235,15 @@ async function detectOracleDeviation(
 
   return { deviation, isAnomaly: reason.length > 0, reason, onChainPrice: onChain.price, pythPrice: pyth.price };
 }
+
 ```
 
 Operational notes:
+
 - For Pyth, monitor price ID, confidence interval, publish time, and whether the feed is in trading status.
+
 - For Switchboard, monitor aggregator `latestConfirmedRound`, staleness, queue authority changes, and crank delays.
+
 - For custom oracle PDAs, document the exact account layout and owner; alert if owner or authority changes.
 
 ---
@@ -272,6 +283,7 @@ async function detectWalletAnomaly(programId: string): Promise<{
     isAnomaly: topWalletConcentration > 0.30 || newWalletsIn2h > 20,
   };
 }
+
 ```
 
 ---
@@ -304,6 +316,7 @@ async function detectGovernanceAttack(
   
   return { alert: false, details: "Requires governance program address to check" };
 }
+
 ```
 
 ---
@@ -349,6 +362,7 @@ function detectCPIDepthAnomaly(logMessages: string[]): {
     deepestCallChain,
   };
 }
+
 ```
 
 ---
@@ -409,6 +423,7 @@ async function runWatchdog(programId: string) {
 }
 
 runWatchdog(process.env.PROGRAM_ID!);
+
 ```
 
 ---
@@ -416,7 +431,7 @@ runWatchdog(process.env.PROGRAM_ID!);
 ## Threat Classification Matrix
 
 | Signal | Alone | Combined | Response |
-|--------|-------|----------|----------|
+| -------- | ------- | ---------- | ---------- |
 | Volume 5x | MEDIUM | + new wallet | HIGH |
 | Volume 20x+ | HIGH | + flash loan | CRITICAL |
 | Failed tx probes | MEDIUM | + success after | HIGH → load active-exploit-response.md |
