@@ -92,4 +92,3 @@ increase(solana_program_upgrade_detected_total[1h])
 | 5–15 min | Forensic Investigator pulls upgrade tx and new program bytecode | Forensic Investigator |
 | 15–30 min | Upgrade Commander prepares emergency revert or hotfix | Upgrade Commander |
 | > 30 min | Legal notification; preserve all chain-of-custody evidence | Legal Response Agent |
-
