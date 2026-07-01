@@ -91,16 +91,14 @@ resolve_source_dir() {
 
 SOURCE_DIR="$(resolve_source_dir)"
 
-cat <<EOF
-
-${RED}╔══════════════════════════════════════════════════════════════╗${NC}
-${RED}║${NC}  ${WHITE}⚔  Solana Incident Response Skill${NC}                          ${RED}║${NC}
-${RED}║${NC}  ${CYAN}The playbook no one wants — and everyone needs.${NC}             ${RED}║${NC}
-${RED}╚══════════════════════════════════════════════════════════════╝${NC}
-
-  ${CYAN}Source:${NC} $SOURCE_DIR
-  ${CYAN}Target:${NC} $SKILL_PATH
-EOF
+echo -e ""
+echo -e "${RED}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${RED}║${NC}  ${WHITE}⚔  Solana Incident Response Skill${NC}                          ${RED}║${NC}"
+echo -e "${RED}║${NC}  ${CYAN}The playbook no one wants — and everyone needs.${NC}             ${RED}║${NC}"
+echo -e "${RED}╚══════════════════════════════════════════════════════════════╝${NC}"
+echo -e ""
+echo -e "  ${CYAN}Source:${NC} $SOURCE_DIR"
+echo -e "  ${CYAN}Target:${NC} $SKILL_PATH"
 
 if [ "$SKIP_CONFIRM" = false ]; then
   read -r -p "Proceed? [Y/n] " reply
@@ -194,11 +192,9 @@ else
   exit 1
 fi
 
-cat <<EOF
-
-${WHITE}During an incident:${NC}
-  ${CYAN}"Load skill/active-exploit-response.md + skill/program-freeze-and-pause.md"${NC}
-  ${CYAN}"Run /incident-triage — suspicious transactions on [PROGRAM_ADDRESS]"${NC}
-  ${CYAN}"Run /freeze-checklist — program [PROGRAM_ID], Squads 3-of-5"${NC}
-  ${CYAN}"Run /incident-readiness-drill — tabletop for [PROGRAM_ID]"${NC}
-EOF
+echo -e ""
+echo -e "${WHITE}During an incident:${NC}"
+echo -e "  ${CYAN}\"Load skill/active-exploit-response.md + skill/program-freeze-and-pause.md\"${NC}"
+echo -e "  ${CYAN}\"Run /incident-triage — suspicious transactions on [PROGRAM_ADDRESS]\"${NC}"
+echo -e "  ${CYAN}\"Run /freeze-checklist — program [PROGRAM_ID], Squads 3-of-5\"${NC}"
+echo -e "  ${CYAN}\"Run /incident-readiness-drill — tabletop for [PROGRAM_ID]\"${NC}"
