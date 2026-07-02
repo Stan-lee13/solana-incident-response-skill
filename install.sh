@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Solana Incident Response Skill — Installer
-
 set -euo pipefail
 
 RED='\033[0;31m'
@@ -121,12 +120,12 @@ else
   mkdir -p "$SKILL_PATH"
 fi
 
-for dir in skill agents commands rules docs; do
+for dir in skill agents commands rules docs runbooks; do
   rm -rf "$SKILL_PATH/$dir"
   cp -R "$SOURCE_DIR/$dir" "$SKILL_PATH/"
 done
 
-for file in SKILL.md CLAUDE.md README.md LICENSE ecosystem-signals.md .markdownlint.json .lychee.toml; do
+for file in SKILL.md AGENTS.md CLAUDE.md README.md LICENSE SECURITY.md CONTRIBUTING.md ecosystem-signals.md wallet-framework.md .markdownlint.json .lychee.toml; do
   if [ -f "$SOURCE_DIR/$file" ]; then
     cp "$SOURCE_DIR/$file" "$SKILL_PATH/"
   fi
@@ -144,8 +143,20 @@ Load immediately when you detect or suspect a security exploit."
     if ! grep -q "Incident Response Skill" "$CLAUDE_MD_PATH"; then
       printf "\n%s\n" "$CLAUDE_BLOCK" >> "$CLAUDE_MD_PATH"
       echo -e "  ${GREEN}✓${NC} Added to CLAUDE.md"
-    else
+    elif grep -qF "Playbook: ${SKILL_PATH}/SKILL.md" "$CLAUDE_MD_PATH"; then
       echo -e "  ${YELLOW}→${NC} Already registered"
+    else
+      # Registered but pointing at a stale path (e.g. reinstalled elsewhere) — refresh it
+      TMP_CLAUDE_MD="$(mktemp)"
+      awk '
+        /^## Incident Response Skill$/ { skip=1; next }
+        skip && /^## / { skip=0 }
+        skip && NF==0 { next }
+        !skip { print }
+      ' "$CLAUDE_MD_PATH" > "$TMP_CLAUDE_MD"
+      cp "$TMP_CLAUDE_MD" "$CLAUDE_MD_PATH"
+      printf "\n%s\n" "$CLAUDE_BLOCK" >> "$CLAUDE_MD_PATH"
+      echo -e "  ${GREEN}✓${NC} Updated stale registration to new path"
     fi
   else
     printf "# Claude Configuration\n\n%s\n" "$CLAUDE_BLOCK" > "$CLAUDE_MD_PATH"

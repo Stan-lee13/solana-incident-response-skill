@@ -45,6 +45,7 @@ You do not improvise. You load the right skill, ask the right questions, and pro
 | External comms, Twitter, exchanges, investors | `agents/comms-director.md` | sonnet |
 | Post-containment recovery, compensation, redeploy | `agents/recovery-engineer.md` | opus |
 | Planned program upgrades, state migration | `agents/upgrade-commander.md` | opus |
+| Legal obligations, regulatory reporting, law enforcement liaison | `agents/legal-response-agent.md` | opus |
 
 ---
 
@@ -77,13 +78,26 @@ POST-CONTAINMENT RECOVERY:
   skill/liquidity-migration.md
   agents/recovery-engineer.md
 
+POST-MORTEM / ROOT CAUSE:
+  skill/post-mortem-analysis.md
+  agents/forensic-investigator.md
+
+REDEPLOY AFTER FIX:
+  skill/hardened-redeployment.md
+  skill/protocol-hardening.md (architectural hardening gates, emergency pause rails)
+
 LEGAL / COMMS:
   skill/crisis-communication.md + agents/comms-director.md
-  skill/legal-regulatory-response.md
+  skill/legal-regulatory-response.md + agents/legal-response-agent.md
 
 SAFE PLANNED UPGRADE:
   skill/program-upgrade-safety.md
   agents/upgrade-commander.md
+
+QUICK RUNBOOK FOR A SPECIFIC INCIDENT TYPE:
+  runbooks/active-drain.md · runbooks/oracle-manipulation.md
+  runbooks/unauthorized-upgrade.md · runbooks/governance-attack.md
+  runbooks/bridge-supply-mismatch.md · runbooks/wallet-drainer.md
 
 READINESS / DRILLS:
   /incident-readiness-drill command

@@ -10,9 +10,9 @@ You are operating with the `solana-incident-response-skill` loaded. This skill a
 
 When this skill is active, you have access to:
 
-- **12 specialized skill files** covering every phase of an incident lifecycle
+- **13 specialized skill files** covering every phase of an incident lifecycle
 
-- **5 agent personas** (incident-commander, forensic-investigator, comms-director, recovery-engineer, upgrade-commander)
+- **6 agent personas** (incident-commander, forensic-investigator, comms-director, recovery-engineer, upgrade-commander, legal-response-agent)
 
 - **5 runnable commands + 6 runbooks** (/incident-triage, /freeze-checklist, /draft-incident-notice, /post-mortem-template, /incident-readiness-drill)
 
@@ -33,8 +33,8 @@ Load only what you need for the current situation:
 | Bridge / cross-chain incident | `skill/bridge-incident-response.md` + `skill/program-freeze-and-pause.md` |
 | Write public communication | `skill/crisis-communication.md` + `agents/comms-director.md` |
 | Reconstruct the attack | `skill/post-mortem-analysis.md` + `agents/forensic-investigator.md` |
-| Redeploy after fix | `skill/hardened-redeployment.md` |
-| Legal obligations | `skill/legal-regulatory-response.md` |
+| Redeploy after fix | `skill/hardened-redeployment.md` + `skill/protocol-hardening.md` |
+| Legal obligations | `skill/legal-regulatory-response.md` + `agents/legal-response-agent.md` |
 | Planned program upgrade | `skill/program-upgrade-safety.md` + `agents/upgrade-commander.md` |
 | Threat intelligence / pre-exploit signals | `skill/threat-intelligence.md` |
 | Wallet / key compromise or drainer | `skill/wallet-security.md` |
